@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+    body {
+      background: black; 
+    }
+    .block {
+      position: absolute;
+      left: 200px;
+      top: 150px;
+      cursor: grab;   
+      user-select: none;
+      user-select: none;  
+      display: flex;
+      align-items: center;     
+      justify-content: center; 
+      margin: 0px;
+      border: 5px solid #a61c00;
+      text-align: center;
+      background-color: #cc0000;
+      box-sizing: border-box;
+      width: 120px;
+      height: 60px;
+      border-radius: 10px;
+        transition: opacity 0.2s, border-color 0.3s, box-shadow 0.3s, filter 0.3s;
+    }
+    .block:hover {
+    filter: brightness(1.2);
+    border-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+    animation: vibrate 0.4s linear 1;
+    }
+    @keyframes vibrate {
+  0% { transform: translate(0); }
+  25% { transform: translate(2px, -2px); }
+  50% { transform: translate(-2px, 2px); }
+  75% { transform: translate(1px, 1px); }
+  100% { transform: translate(0); }
+}
+    .block:active {
+      cursor: grabbing;
+    }
+  </style>
+</head>
+<body>
+    <div class = "block">
+        It is block
+    </div>
+    <script>
+      const block = document.querySelector('.block');
+      let isDragging = false;
+      let offsetX, offsetY;
+      block.onmousedown = (e) => {
+        isDragging = true;
+        block.style.opacity = '0.5';
+        offsetX = e.clientX - block.offsetLeft;
+        offsetY = e.clientY - block.offsetTop;
+      };
+      document.onmousemove = (e) => {
+        if (!isDragging) return;
+        block.style.left = (e.clientX - offsetX) + 'px';
+        block.style.top = (e.clientY - offsetY) + 'px';
+      };
+      document.onmouseup = () => {
+        isDragging = false;
+        block.style.opacity = '1';
+};
+
+    </script>
+</body>
+</html>
