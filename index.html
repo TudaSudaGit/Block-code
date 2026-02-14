@@ -7,6 +7,7 @@
     <style>
     body {
       background: black; 
+      margin: 0;
     }
     .block {
       position: absolute;
@@ -26,32 +27,56 @@
       width: 120px;
       height: 60px;
       border-radius: 10px;
-        transition: opacity 0.2s, border-color 0.3s, box-shadow 0.3s, filter 0.3s;
+      transition: opacity 0.2s, border-color 0.3s, box-shadow 0.3s, filter 0.3s;
     }
     .block:hover {
-    filter: brightness(1.2);
-    border-color: rgba(255, 255, 255, 0.6);
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
-    animation: vibrate 0.4s linear 1;
+      filter: brightness(1.2);
+      border-color: rgba(255, 255, 255, 0.6);
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+      animation: vibrate 0.4s linear 1;
     }
     @keyframes vibrate {
-  0% { transform: translate(0); }
-  25% { transform: translate(2px, -2px); }
-  50% { transform: translate(-2px, 2px); }
-  75% { transform: translate(1px, 1px); }
-  100% { transform: translate(0); }
-}
+      0% { transform: translate(0); }
+      25% { transform: translate(2px, -2px); }
+      50% { transform: translate(-2px, 2px); }
+      75% { transform: translate(1px, 1px); }
+      100% { transform: translate(0); }
+    }
     .block:active {
       cursor: grabbing;
     }
+    .trash {
+      position: absolute;
+      border-radius: 10px;
+      bottom: 10px;
+      right: 10px;
+      width: 126px;   
+      height: 63px;  
+      border: 3px solid black;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    .trash.active {
+      background: red;
+      box-shadow: 0 0 20px red;
+}
   </style>
 </head>
 <body>
-    <div class = "block">
+  <div class="trash" id="trash">
+    🗑️
+  </div>
+    </div>
+    <div class = "block" id="block">
         It is block
     </div>
     <script>
-      const block = document.querySelector('.block');
+      block = document.querySelector('.block');
+      trash = document.getElementById('trash');
       let isDragging = false;
       let offsetX, offsetY;
       block.onmousedown = (e) => {
@@ -62,14 +87,32 @@
       };
       document.onmousemove = (e) => {
         if (!isDragging) return;
-        block.style.left = (e.clientX - offsetX) + 'px';
-        block.style.top = (e.clientY - offsetY) + 'px';
+        x = e.clientX - offsetX;
+        y = e.clientY - offsetY;
+        block.style.left = (x) + 'px';
+        block.style.top = (y) + 'px';
+        block.style.left = x + 'px';
+        block.style.top = y + 'px';
+        blockRect = block.getBoundingClientRect();
+        trashRect = trash.getBoundingClientRect();
+        isOverTrash = (blockRect.right > trashRect.left && blockRect.left < trashRect.right && blockRect.bottom > trashRect.top && blockRect.top < trashRect.bottom);
+        if (isOverTrash) {
+          trash.classList.add('active');
+        } else {
+          trash.classList.remove('active');
+        }
       };
       document.onmouseup = () => {
         isDragging = false;
         block.style.opacity = '1';
-};
-
+        blockRect = block.getBoundingClientRect();
+        trashRect = trash.getBoundingClientRect();
+        isOverTrash = (blockRect.right > trashRect.left && blockRect.left < trashRect.right && blockRect.bottom > trashRect.top && blockRect.top < trashRect.bottom);
+        if (isOverTrash) {
+          block.remove();
+        }
+        trash.classList.remove('active');
+      };
     </script>
 </body>
 </html>
