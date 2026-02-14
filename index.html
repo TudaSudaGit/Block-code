@@ -5,10 +5,32 @@
     <title>Document</title>
     <style>
     body {
-      background: gray; 
+      background: #606060; 
       margin: 0;
       overflow: hidden;
     }
+    .panel {
+      position: absolute;
+      top: 0;
+      width: 150px;
+      height: 100%;
+      background: #222;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-sizing: border-box;
+    }
+    .left-panel { 
+      left: 0; 
+      padding-top: 20px; 
+      border-right: 1px solid rgb(169, 164, 164);
+    }
+    .right-panel { 
+      right: 0; 
+      padding-bottom: 20px; 
+      border-left: 1px solid rgb(169, 164, 164);
+    } 
     .block {
       position: absolute;
       left:10px;
@@ -39,7 +61,7 @@
     #spawner {
       left: 10px;
       top: 10px;
-      z-index: 10; 
+      z-index: 100; 
     }
     @keyframes vibrate {
       0% { transform: translate(0); }
@@ -74,8 +96,12 @@
   </style>
 </head>
 <body>
-  <div class="trash" id="trash">🗑️</div>
- <div class="block" id="spawner">Drag me</div>
+    <div class="panel left-panel">
+      <div class = "block" id="spawner">Drag me</div>
+  </div>  
+  <div class="panel right-panel">
+      <div class="trash" id="trash">🗑️</div>
+  </div>
     <script>
     const spawner = document.getElementById('spawner');
     const trash = document.getElementById('trash');
