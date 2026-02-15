@@ -4,17 +4,40 @@ const trashRect = trash.getBoundingClientRect();
 let activeBlock = null; 
 let offsetX = 0;
 let offsetY = 0;
-    function startDrag(e, element) {
+function startDrag(e, element) {
     activeBlock = element; 
     activeBlock.style.opacity = '0.5'; 
     const rect = activeBlock.getBoundingClientRect();
     offsetX = e.clientX - rect.left;
     offsetY = e.clientY - rect.top;
 }
+function createDropdown(block) {
+    const select = document.createElement('select');
+    const options = [ "I am first", "I am second", "I am third", "I am fourth", "I am fifth"];
+    const placeholder = document.createElement('option');
+    placeholder.textContent = "Choose...";
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    select.appendChild(placeholder);
+    options.forEach(text => {
+    const opt = document.createElement('option');
+    opt.value = text;
+    opt.textContent = text;
+    select.appendChild(opt);
+    });
+    select.onmousedown = (e) => {
+    e.stopPropagation(); 
+    };
+  select.onchange = () => {
+    block.textContent = select.value; 
+    };
+    block.textContent = "";
+    block.appendChild(select);
+}
 spawner.onmousedown = (e) => {
     const newBlock = document.createElement('div');
     newBlock.classList.add('block');
-    newBlock.innerText = "I am new!";
+    createDropdown(newBlock);
     newBlock.style.left = spawner.offsetLeft + 'px';
     newBlock.style.top = spawner.offsetTop + 'px';
     document.body.appendChild(newBlock);
