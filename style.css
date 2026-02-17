@@ -47,7 +47,7 @@ body {
     height: 60px;
     border-radius: 10px;
     transition: opacity 0.2s, border-color 0.3s, box-shadow 0.3s, filter 0.3s;
-    z-index: 100;
+    z-index: 1000;
 }
 
 .block:hover {
@@ -98,14 +98,14 @@ body {
 }
 
 .port {
-    position: absolute;
-    right: -8px;
+    position:absolute;
+    right: -5px;
     top: 50%;
     transform: translateY(-50%);
-    width: 14px;
+    width: 7px;
     height: 14px;
     background: #00bfff;
-    border-radius: 50%;
+    border-radius: 7px 0 0 7px;
     cursor: crosshair;
     border: 2px solid white;
 }
@@ -120,5 +120,5 @@ svg {
     top: 0;
     left: 0;
     pointer-events: none;
-    z-index: 1000;
+    z-index: 100;
 }
