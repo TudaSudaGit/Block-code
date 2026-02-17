@@ -76,6 +76,7 @@ function createDropdown(block) {
     block.appendChild(port);
     makePortConnectable(block, port);
 }
+
 spawner.onmousedown = (e) => {
     const newBlock = document.createElement('div');
     newBlock.classList.add('block');
@@ -88,6 +89,7 @@ spawner.onmousedown = (e) => {
     };
     startDrag(e, newBlock);
 };
+
 document.onmousemove = (e) => {
     if (!activeBlock) return; 
         const x = e.clientX - offsetX;
