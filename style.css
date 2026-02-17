@@ -3,39 +3,42 @@ body {
     margin: 0;
     overflow: hidden;
 }
+
 .panel {
     position: absolute;
     top: 0;
     width: 150px;
     height: 100%;
     background: #222;
-    z-index: 50;
+    z-index: 10;
     display: flex;
     flex-direction: column;
     align-items: center;
     box-sizing: border-box;
 }
+
 .left-panel { 
     left: 0; 
     padding-top: 20px; 
     border-right: 1px solid rgb(169, 164, 164);
 }
+
 .right-panel { 
     right: 0; 
     padding-bottom: 20px; 
     border-left: 1px solid rgb(169, 164, 164);
 } 
+
 .block {
     position: absolute;
     left:10px;
     top: 10px;
     cursor: grab;   
     user-select: none;
-    user-select: none;  
     display: flex;
     align-items: center;     
     justify-content: center; 
-    margin: 0px;
+    margin-top: 10px;
     border: 5px solid #a61c00;
     text-align: center;
     background-color: #cc0000;
@@ -46,17 +49,20 @@ body {
     transition: opacity 0.2s, border-color 0.3s, box-shadow 0.3s, filter 0.3s;
     z-index: 100;
 }
+
 .block:hover {
     filter: brightness(1.2);
     border-color: rgba(255, 255, 255, 0.6);
     box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
     animation: vibrate 0.4s linear 1;
 }
+
 #spawner {
     left: 10px;
     top: 10px;
     z-index: 100; 
 }
+
 @keyframes vibrate {
     0% { transform: translate(0); }
     25% { transform: translate(2px, -2px); }
@@ -64,9 +70,11 @@ body {
     75% { transform: translate(1px, 1px); }
     100% { transform: translate(0); }
 }
+
 .block:active {
     cursor: grabbing;
 }
+
 .trash {
     user-select: none;
     position: absolute;
@@ -83,7 +91,34 @@ body {
     box-sizing: border-box;
     transition: background 0.2s, box-shadow 0.2s;
 }
+
 .trash.active {
     background: red;
     box-shadow: 0 0 20px red;
+}
+
+.port {
+    position: absolute;
+    right: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    background: #00bfff;
+    border-radius: 50%;
+    cursor: crosshair;
+    border: 2px solid white;
+}
+
+.block.connected {
+    border-color: rgb(180, 99, 7);
+    box-shadow: 0 0 10px rgb(199, 122, 7);
+}
+
+svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 1000;
 }
