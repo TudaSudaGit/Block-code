@@ -41,7 +41,6 @@ body {
     margin-top: 10px;
     border: 5px solid #a61c00;
     text-align: center;
-    background-color: #cc0000;
     box-sizing: border-box;
     width: 120px;
     height: 60px;
@@ -91,12 +90,6 @@ body {
     box-sizing: border-box;
     transition: background 0.2s, box-shadow 0.2s;
 }
-
-.trash.active {
-    background: red;
-    box-shadow: 0 0 20px red;
-}
-
 .port {
     position:absolute;
     right: -5px;
