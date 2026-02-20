@@ -219,6 +219,29 @@ function setPolylinePath(line, x1, y1, x2, y2) {
     line.setAttribute("points", points);
 }
 
+function wouldCreateCycle(fromBlock, toBlock) {
+    if (fromBlock === toBlock) return true;
+    
+    const visited = new Set();
+    const stack = [toBlock];
+    
+    while (stack.length > 0) {
+        const current = stack.pop();
+        if (visited.has(current)) continue;
+        visited.add(current);
+        
+        if (current === fromBlock) return true;
+        
+        connections.forEach(conn => {
+            if (conn.from === current) {
+                stack.push(conn.to);
+            }
+        });
+    }
+    
+    return false;
+}
+
 function makePortConnectable(block, port) {
     port.addEventListener("mousedown", e => {
         e.stopPropagation();
@@ -247,11 +270,12 @@ function makePortConnectable(block, port) {
             const target = findBlockUnder(ev.clientX, ev.clientY);
             if (target && target !== startBlock) {
                 const targetIncoming = connections.some(conn => conn.to === target);
-                if (!targetIncoming) {
-                    connections.push({
-                        from: startBlock,
-                        to: target,
-                        line: activeLine
+        const startOutgoing = connections.some(conn => conn.from === startBlock);
+        if (!targetIncoming && !startOutgoing && !wouldCreateCycle(startBlock, target)) {
+            connections.push({
+                from: startBlock,
+                to: target,
+                line: activeLine
                     });
                     updateConnections();
                 }
