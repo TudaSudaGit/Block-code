@@ -4,6 +4,7 @@ let offsetY = 0;
 let connections = [];
 let activeLine = null;
 let startBlock = null;
+<<<<<<< HEAD
 let executionInProgress = false;
 
 const firstFive = ["Print text", "Show message", "Display value", "Output line", "Write to console"];
@@ -14,12 +15,23 @@ const nextFive4 = ["Loop 5 times", "While True", "For each item", "Break loop", 
 const nextFive5 = ["Return value", "End function", "Throw error", "Try catch", "Finally"];
 
 initSpawner('spawnerBlue', 'blue', firstFive, true);
+=======
+const firstFive = ["I am first", "I am second", "I am third", "I am fourth", "I am fifth"];
+const nextFive = ["I am sixth", "I am seventh", "I am eighth", "I am ninth", "I am tenth"];
+const nextFive2 = ["I am eleventh", "I am twelfth", "I am thirteenth", "I am fourteenth", "I am fifteenth"];
+const nextFive3 = ["I am sixteenth", "I am seventeenth", "I am eighteenth", "I am nineteenth", "I am twentieth"];
+const nextFive4 = ["I am twenty-first", "I am twenty-second", "I am twenty-third", "I am twenty-fourth", "I am twenty-fifth"];
+const nextFive5 = ["I am twenty-sixth", "I am twenty-seventh", "I am twenty-eighth", "I am twenty-ninth", "I am thirtieth"];
+
+initSpawner('spawnerBlue', 'blue', firstFive);
+>>>>>>> 087bae845dbf902c960c98f86dc601108da7b8cc
 initSpawner('spawnerPurple', 'purple', nextFive);
 initSpawner('spawnerGreen', 'green', nextFive2);
 initSpawner('spawnerOrange', 'orange', nextFive3);
 initSpawner('spawnerCyan', 'cyan', nextFive4);
 initSpawner('spawnerYellow', 'yellow', nextFive5);
 
+<<<<<<< HEAD
 const consoleContent = document.getElementById('consoleContent');
 const clearConsoleBtn = document.getElementById('clearConsole');
 
@@ -30,6 +42,8 @@ clearConsoleBtn.addEventListener('click', () => {
 const startBlockElement = document.getElementById('startBlock');
 makeStartBlockDraggable(startBlockElement);
 
+=======
+>>>>>>> 087bae845dbf902c960c98f86dc601108da7b8cc
 const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 svg.setAttribute("width", window.innerWidth);
 svg.setAttribute("height", window.innerHeight);
@@ -42,7 +56,10 @@ document.body.appendChild(svg);
 window.addEventListener("resize", () => {
     svg.setAttribute("width", window.innerWidth);
     svg.setAttribute("height", window.innerHeight);
+<<<<<<< HEAD
     updateConnections();
+=======
+>>>>>>> 087bae845dbf902c960c98f86dc601108da7b8cc
 });
 
 const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
@@ -56,11 +73,16 @@ marker.setAttribute("orient", "auto");
 
 const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
 path.setAttribute("d", "M0,0 L10,5 L0,10 Z");
+<<<<<<< HEAD
 path.setAttribute("fill", "#FFD700");
+=======
+path.setAttribute("fill", "white");
+>>>>>>> 087bae845dbf902c960c98f86dc601108da7b8cc
 marker.appendChild(path);
 defs.appendChild(marker);
 svg.appendChild(defs);
 
+<<<<<<< HEAD
 function makeStartBlockDraggable(element) {
     const port = document.createElement("div");
     port.classList.add("start-port");
@@ -78,11 +100,17 @@ function makeStartBlockDraggable(element) {
 function startDrag(e, element) {
     activeBlock = element; 
     activeBlock.style.opacity = '0.7'; 
+=======
+function startDrag(e, element) {
+    activeBlock = element; 
+    activeBlock.style.opacity = '0.5'; 
+>>>>>>> 087bae845dbf902c960c98f86dc601108da7b8cc
     activeBlock.style.zIndex = '1000';
     const rect = activeBlock.getBoundingClientRect();
     offsetX = e.clientX - rect.left;
     offsetY = e.clientY - rect.top;
 }
+<<<<<<< HEAD
 
 function createDropdown(block, optionsList, isBlueBlock = false) {
     if (isBlueBlock) {
@@ -173,12 +201,56 @@ function createDropdown(block, optionsList, isBlueBlock = false) {
 }
 
 function initSpawner(spawnerId, colorClass, blockOptions, isBlueBlock = false) {
+=======
+//kjbvbhjl
+function createDropdown(block, optionsList) {
+    const select = document.createElement('select');
+    const placeholder = document.createElement('option');
+    placeholder.textContent = "Choose...";
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    select.appendChild(placeholder);
+    optionsList.forEach(text => {
+        const opt = document.createElement('option');
+        opt.value = text;
+        opt.textContent = text;
+        select.appendChild(opt);
+    });
+    select.onmousedown = (e) => e.stopPropagation(); 
+    select.onchange = () => {
+        const oldPort = block.querySelector('.port');
+        block.innerHTML = '';
+        block.textContent = select.value;
+        if (oldPort) {
+            block.appendChild(oldPort);
+        } else {
+            const port = document.createElement("div");
+            port.classList.add("port");
+            block.appendChild(port);
+            makePortConnectable(block, port);
+        }
+    };
+    const port = document.createElement("div");
+    port.classList.add("port");
+    block.appendChild(port);
+    makePortConnectable(block, port);
+    block.textContent = "";
+    block.appendChild(select);
+    block.appendChild(port);
+}
+
+function initSpawner(spawnerId, colorClass, blockOptions) {
+>>>>>>> 087bae845dbf902c960c98f86dc601108da7b8cc
     const spawner = document.getElementById(spawnerId);
     spawner.onmousedown = (e) => {
         e.preventDefault(); 
         const newBlock = document.createElement('div');
         newBlock.classList.add('block', colorClass);
+<<<<<<< HEAD
         createDropdown(newBlock, blockOptions, isBlueBlock);
+=======
+        createDropdown(newBlock, blockOptions);
+>>>>>>> 087bae845dbf902c960c98f86dc601108da7b8cc
         const rect = spawner.getBoundingClientRect();
         newBlock.style.position = 'absolute';
         newBlock.style.left = rect.left + 'px';
@@ -199,6 +271,7 @@ document.onmousemove = (e) => {
     const x = e.clientX - offsetX;
     const y = e.clientY - offsetY;
 
+<<<<<<< HEAD
     const leftPanel = document.querySelector('.left-panel');
     const leftPanelRect = leftPanel.getBoundingClientRect();
     
@@ -208,6 +281,9 @@ document.onmousemove = (e) => {
         activeBlock.style.left = x + 'px';
     }
     
+=======
+    activeBlock.style.left = x + 'px';
+>>>>>>> 087bae845dbf902c960c98f86dc601108da7b8cc
     activeBlock.style.top = y + 'px';
 
     const blockRect = activeBlock.getBoundingClientRect();
@@ -231,6 +307,7 @@ document.onmouseup = () => {
     if (!activeBlock) return;
     const blockRect = activeBlock.getBoundingClientRect();
     const isOverTrash = (blockRect.right > trashRect.left && blockRect.left < trashRect.right && blockRect.bottom > trashRect.top && blockRect.top < trashRect.bottom);
+<<<<<<< HEAD
     
     if (isOverTrash) {
         if (activeBlock.id === 'startBlock') {
@@ -239,6 +316,11 @@ document.onmouseup = () => {
             removeConnections(activeBlock);
             activeBlock.remove();
         }
+=======
+    if (isOverTrash) {
+        removeConnections(activeBlock);
+        activeBlock.remove();
+>>>>>>> 087bae845dbf902c960c98f86dc601108da7b8cc
     }
     else {
         activeBlock.style.opacity = '1';
@@ -259,7 +341,10 @@ function removeConnections(block) {
 
     updateBlockConnectionStates();
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 087bae845dbf902c960c98f86dc601108da7b8cc
 function updateBlockConnectionStates() {
     const blocks = document.querySelectorAll(".block");
     blocks.forEach(block => {
@@ -276,15 +361,26 @@ function updateBlockConnectionStates() {
 }
 
 function setPolylinePath(line, x1, y1, x2, y2) {
+<<<<<<< HEAD
     const offsetX = 40;
     
+=======
+
+    const offsetX = 30;
+    const safeOffset = 2;
+
+>>>>>>> 087bae845dbf902c960c98f86dc601108da7b8cc
     const startX = x1;
     const startY = y1;
 
     const p1x = x1 + offsetX;
     const p1y = y1;
 
+<<<<<<< HEAD
     const midY = y1 + (y2 - y1) * 0.5;
+=======
+    const midY = y1 + (y2 - y1) * 0.6;
+>>>>>>> 087bae845dbf902c960c98f86dc601108da7b8cc
 
     const p2x = p1x;
     const p2y = midY;
@@ -295,7 +391,11 @@ function setPolylinePath(line, x1, y1, x2, y2) {
     const p4x = p3x;
     const p4y = y2;
 
+<<<<<<< HEAD
     const endX = x2;
+=======
+    const endX = x2 - safeOffset;
+>>>>>>> 087bae845dbf902c960c98f86dc601108da7b8cc
     const endY = y2;
 
     const points = `
@@ -310,6 +410,7 @@ function setPolylinePath(line, x1, y1, x2, y2) {
     line.setAttribute("points", points);
 }
 
+<<<<<<< HEAD
 function wouldCreateCycle(fromBlock, toBlock) {
     if (fromBlock === toBlock) return true;
     
@@ -347,6 +448,17 @@ function makePortConnectable(block, port) {
         activeLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
         activeLine.setAttribute("stroke", "#FFD700");
         activeLine.setAttribute("stroke-width", "3");
+=======
+function makePortConnectable(block, port) {
+    port.addEventListener("mousedown", e => {
+        e.stopPropagation();
+        startBlock = block;
+        const startOutgoing = connections.some(conn => conn.from === startBlock);
+        if (startOutgoing) return;
+        activeLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+        activeLine.setAttribute("stroke", "white");
+        activeLine.setAttribute("stroke-width", "2");
+>>>>>>> 087bae845dbf902c960c98f86dc601108da7b8cc
         activeLine.setAttribute("fill", "none");
         activeLine.setAttribute("marker-end", "url(#arrow)");
         svg.appendChild(activeLine);
@@ -363,6 +475,7 @@ function makePortConnectable(block, port) {
         function up(ev) {
             document.removeEventListener("mousemove", move);
             document.removeEventListener("mouseup", up);
+<<<<<<< HEAD
             
             const target = findBlockUnder(ev.clientX, ev.clientY);
             
@@ -371,16 +484,31 @@ function makePortConnectable(block, port) {
                 const startOutgoing = connections.some(conn => conn.from === startBlock);
                 
                 if (!targetIncoming && !startOutgoing && !wouldCreateCycle(startBlock, target)) {
+=======
+            const target = findBlockUnder(ev.clientX, ev.clientY);
+            if (target && target !== startBlock) {
+                const targetIncoming = connections.some(conn => conn.to === target);
+                if (!targetIncoming) {
+>>>>>>> 087bae845dbf902c960c98f86dc601108da7b8cc
                     connections.push({
                         from: startBlock,
                         to: target,
                         line: activeLine
                     });
                     updateConnections();
+<<<<<<< HEAD
                 } else {
                     activeLine.remove();
                 }
             } else {
+=======
+                }
+                else {
+                    activeLine.remove();
+                }
+            }
+            else {
+>>>>>>> 087bae845dbf902c960c98f86dc601108da7b8cc
                 activeLine.remove();
             }
 
@@ -393,6 +521,7 @@ function makePortConnectable(block, port) {
     });
 }
 
+<<<<<<< HEAD
 function makeStartPortConnectable(block, port) {
     port.addEventListener("mousedown", e => {
         e.stopPropagation();
@@ -480,17 +609,36 @@ function updateConnections() {
         }
     });
     updateBlockConnectionStates();
+=======
+function updateConnections() {
+    connections.forEach(conn => {
+        const r1 = conn.from.getBoundingClientRect();
+        const r2 = conn.to.getBoundingClientRect();
+        const x1 = r1.right;
+        const y1 = r1.top + r1.height / 2;
+        const x2 = r2.left;
+        const y2 = r2.top + r2.height / 2;
+
+        setPolylinePath(conn.line, x1, y1, x2, y2);
+        updateBlockConnectionStates();
+    });
+>>>>>>> 087bae845dbf902c960c98f86dc601108da7b8cc
 }
 
 function findBlockUnder(x, y) {
     const blocks = document.querySelectorAll(".block");
     for (let block of blocks) {
+<<<<<<< HEAD
+=======
+        if (block.id === "spawner") continue;
+>>>>>>> 087bae845dbf902c960c98f86dc601108da7b8cc
         const r = block.getBoundingClientRect();
         if (x > r.left && x < r.right && y > r.top && y < r.bottom) {
             return block;
         }
     }
     return null;
+<<<<<<< HEAD
 }
 
 async function executeBlueprint() {
@@ -584,3 +732,6 @@ document.addEventListener('selectstart', (e) => {
         e.preventDefault();
     }
 });
+=======
+}
+>>>>>>> 087bae845dbf902c960c98f86dc601108da7b8cc
