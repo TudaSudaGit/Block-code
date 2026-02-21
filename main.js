@@ -259,7 +259,6 @@ function removeConnections(block) {
 
     updateBlockConnectionStates();
 }
-
 function updateBlockConnectionStates() {
     const blocks = document.querySelectorAll(".block");
     blocks.forEach(block => {
