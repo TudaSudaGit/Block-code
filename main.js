@@ -72,7 +72,7 @@ function makeStartBlockDraggable(element) {
         startDrag(e, element);
     };
     
-    makeStartPortConnectable(element, port);
+    makePortConnectable(element, port);
 }
 
 function startDrag(e, element) {
@@ -333,66 +333,6 @@ function wouldCreateCycle(fromBlock, toBlock) {
 }
 
 function makePortConnectable(block, port) {
-    port.addEventListener("mousedown", e => {
-        e.stopPropagation();
-        e.preventDefault();
-        
-        startBlock = block;
-        const startOutgoing = connections.some(conn => conn.from === startBlock);
-        if (startOutgoing) {
-            return;
-        }
-        
-        activeLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-        activeLine.setAttribute("stroke", "#FFD700");
-        activeLine.setAttribute("stroke-width", "3");
-        activeLine.setAttribute("fill", "none");
-        activeLine.setAttribute("marker-end", "url(#arrow)");
-        svg.appendChild(activeLine);
-
-        function move(ev) {
-            const r = startBlock.getBoundingClientRect();
-            const x1 = r.right;
-            const y1 = r.top + r.height / 2;
-            const x2 = ev.clientX;
-            const y2 = ev.clientY;
-            setPolylinePath(activeLine, x1, y1, x2, y2);
-        }
-
-        function up(ev) {
-            document.removeEventListener("mousemove", move);
-            document.removeEventListener("mouseup", up);
-            
-            const target = findBlockUnder(ev.clientX, ev.clientY);
-            
-            if (target && target !== startBlock) {
-                const targetIncoming = connections.some(conn => conn.to === target);
-                const startOutgoing = connections.some(conn => conn.from === startBlock);
-                
-                if (!targetIncoming && !startOutgoing && !wouldCreateCycle(startBlock, target)) {
-                    connections.push({
-                        from: startBlock,
-                        to: target,
-                        line: activeLine
-                    });
-                    updateConnections();
-                } else {
-                    activeLine.remove();
-                }
-            } else {
-                activeLine.remove();
-            }
-
-            activeLine = null;
-            startBlock = null;
-        }
-
-        document.addEventListener("mousemove", move);
-        document.addEventListener("mouseup", up);
-    });
-}
-
-function makeStartPortConnectable(block, port) {
     port.addEventListener("mousedown", e => {
         e.stopPropagation();
         e.preventDefault();
