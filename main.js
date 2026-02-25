@@ -6,12 +6,12 @@ let activeLine = null;
 let startBlock = null;
 let executionInProgress = false;
 
-const firstFive = ["Print text", "Show message", "Display value", "Output line", "Write to console"];
-const nextFive = ["Add 5+3", "Multiply 4*7", "Divide 10/2", "Subtract 9-4", "Calculate 2^8"];
-const nextFive2 = ["Set Variable X=10", "Set Variable Y=20", "Set Variable Name='Code'", "Set Variable Count=5", "Set Variable Active=true"];
-const nextFive3 = ["If X > Y", "If Count < 10", "If Name == 'Code'", "If Active == true", "Else Statement"];
-const nextFive4 = ["Loop 5 times", "While True", "For each item", "Break loop", "Continue"];
-const nextFive5 = ["Return value", "End function", "Throw error", "Try catch", "Finally"];
+const firstFive = ["I am first", "I am second", "I am third", "I am fourth", "I am fifth"];
+const nextFive = ["I am sixth", "I am seventh", "I am eighth", "I am ninth", "I am tenth"];
+const nextFive2 = ["I am eleventh", "I am twelfth", "I am thirteenth", "I am fourteenth", "I am fifteenth"];
+const nextFive3 = ["I am sixteenth", "I am seventeenth", "I am eighteenth", "I am nineteenth", "I am twentieth"];
+const nextFive4 = ["I am twenty-first", "I am twenty-second", "I am twenty-third", "I am twenty-fourth", "I am twenty-fifth"];
+const nextFive5 = ["I am twenty-sixth", "I am twenty-seventh", "I am twenty-eighth", "I am twenty-ninth", "I am thirtieth"];
 
 initSpawner('spawnerBlue', 'blue', firstFive, true);
 initSpawner('spawnerPurple', 'purple', nextFive);
@@ -56,7 +56,7 @@ marker.setAttribute("orient", "auto");
 
 const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
 path.setAttribute("d", "M0,0 L10,5 L0,10 Z");
-path.setAttribute("fill", "#FFD700");
+path.setAttribute("fill", "#ffffff");
 marker.appendChild(path);
 defs.appendChild(marker);
 svg.appendChild(defs);
@@ -344,7 +344,7 @@ function makePortConnectable(block, port) {
         }
         
         activeLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-        activeLine.setAttribute("stroke", "#FFD700");
+        activeLine.setAttribute("stroke", "#ffffff");
         activeLine.setAttribute("stroke-width", "3");
         activeLine.setAttribute("fill", "none");
         activeLine.setAttribute("marker-end", "url(#arrow)");
@@ -457,7 +457,7 @@ async function executeBlueprint() {
     
     await new Promise(resolve => setTimeout(resolve, 500));
     
-    let stepCount = 1;
+    let stepCount = 0;
     let hasPrintedAnything = false;
     
     while (currentBlock) {
@@ -474,7 +474,7 @@ async function executeBlueprint() {
         currentBlock = nextBlock;
         
         if (currentBlock) {
-            await new Promise(resolve => setTimeout(resolve, 400));
+            await new Promise(resolve => setTimeout(resolve, 0));
         }
     }
     
@@ -504,7 +504,7 @@ function executeBlock(block, stepNumber) {
         setTimeout(() => {
             block.classList.remove('executing');
             resolve(printed);
-        }, 600);
+        }, 0);
     });
 }
 
