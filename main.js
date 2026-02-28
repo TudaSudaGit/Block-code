@@ -5,6 +5,9 @@ let connections = [];
 let activeLine = null;
 let startBlock = null;
 let executionInProgress = false;
+let variables = {};
+
+const operators = ["+", "-", "*", "/", "%"];
 
 const firstFive = ["I am first", "I am second", "I am third", "I am fourth", "I am fifth"];
 const nextFive = ["I am sixth", "I am seventh", "I am eighth", "I am ninth", "I am tenth"];
@@ -13,7 +16,9 @@ const nextFive3 = ["I am sixteenth", "I am seventeenth", "I am eighteenth", "I a
 const nextFive4 = ["I am twenty-first", "I am twenty-second", "I am twenty-third", "I am twenty-fourth", "I am twenty-fifth"];
 const nextFive5 = ["I am twenty-sixth", "I am twenty-seventh", "I am twenty-eighth", "I am twenty-ninth", "I am thirtieth"];
 
-initSpawner('spawnerBlue', 'blue', firstFive, true);
+initVarSpawner('spawnerVar');
+initOpSpawner('spawnerOp');
+initSpawner('spawnerOutput', 'output', firstFive, true);
 initSpawner('spawnerPurple', 'purple', nextFive);
 initSpawner('spawnerGreen', 'green', nextFive2);
 initSpawner('spawnerOrange', 'orange', nextFive3);
@@ -84,12 +89,12 @@ function startDrag(e, element) {
     offsetY = e.clientY - rect.top;
 }
 
-function createDropdown(block, optionsList, isBlueBlock = false) {
-    if (isBlueBlock) {
+function createDropdown(block, optionsList, isOutputBlock = false) {
+    if (isOutputBlock) {
         const input = document.createElement('input');
         input.type = 'text';
         input.className = 'block-input';
-        input.placeholder = 'Enter text to print...';
+        input.placeholder = 'Введите текст...';
         input.onmousedown = (e) => e.stopPropagation();
         
         let textToPrint = '';
@@ -121,18 +126,9 @@ function createDropdown(block, optionsList, isBlueBlock = false) {
         };
     } else {
         const select = document.createElement('select');
-        select.style.width = '100%';
-        select.style.height = '100%';
-        select.style.background = 'transparent';
-        select.style.border = 'none';
-        select.style.color = 'inherit';
-        select.style.fontWeight = 'bold';
-        select.style.fontSize = '12px';
-        select.style.textAlign = 'center';
-        select.style.cursor = 'pointer';
         
         const placeholder = document.createElement('option');
-        placeholder.textContent = "Choose action...";
+        placeholder.textContent = "Выбрать...";
         placeholder.disabled = true;
         placeholder.selected = true;
         select.appendChild(placeholder);
@@ -172,19 +168,141 @@ function createDropdown(block, optionsList, isBlueBlock = false) {
     }
 }
 
-function initSpawner(spawnerId, colorClass, blockOptions, isBlueBlock = false) {
+function createVarBlock(block){
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'var-name-input';
+    nameInput.placeholder = 'имя';
+    nameInput.onmousedown = (e) => e.stopPropagation();
+    nameInput.onkeydown = (e) => e.stopPropagation();
+
+    const eq = document.createElement('span');
+    eq.className = 'var-eq-label';
+    eq.textContent = '=';
+
+    const valInput = document.createElement('input');
+    valInput.type = 'text';
+    valInput.className = 'var-val-input';
+    valInput.placeholder = 'значение';
+    valInput.onmousedown = (e) => e.stopPropagation();
+    valInput.onkeydown = (e) => e.stopPropagation();
+
+    const port = document.createElement("div");
+    port.classList.add("port");
+    makePortConnectable(block, port);
+    block.innerHTML = '';
+    block.classList.add('var-input-mode');
+    block.appendChild(nameInput);
+    block.appendChild(eq);
+    block.appendChild(valInput);
+    block.appendChild(port);
+    block.dataset.blockType = 'var';
+}
+
+function createOpBlock(block) {
+    const aInput = document.createElement('input');
+    aInput.type = 'text';
+    aInput.className = 'op-a-input';
+    aInput.placeholder = 'A';
+    aInput.onmousedown = (e) => e.stopPropagation();
+    aInput.onkeydown = (e) => e.stopPropagation();
+
+    const select = document.createElement('select');
+    select.className = 'op-select';
+    operators.forEach(op => {
+        const opt = document.createElement('option');
+        opt.value = op;
+        opt.textContent = op;
+        select.appendChild(opt);
+    });
+    select.onmousedown = (e) => e.stopPropagation();
+
+    const bInput = document.createElement('input');
+    bInput.type = 'text';
+    bInput.className = 'op-b-input';
+    bInput.placeholder = 'B';
+    bInput.onmousedown = (e) => e.stopPropagation();
+    bInput.onkeydown = (e) => e.stopPropagation();
+
+    const arrow = document.createElement('span');
+    arrow.className = 'op-arrow-label';
+    arrow.textContent = '->';
+
+    const resInput = document.createElement('input');
+    resInput.type = 'text';
+    resInput.className = 'op-res-input';
+    resInput.placeholder = 'итог';
+    resInput.onmousedown = (e) => e.stopPropagation();
+    resInput.onkeydown = (e) => e.stopPropagation();
+
+    const port = document.createElement("div");
+    port.classList.add("port");
+    makePortConnectable(block, port);
+    block.innerHTML = '';
+    block.classList.add('op-input-mode');
+    block.appendChild(aInput);
+    block.appendChild(select);
+    block.appendChild(bInput);
+    block.appendChild(arrow);
+    block.appendChild(resInput);
+    block.appendChild(port);
+    block.dataset.blockType = 'op';
+}
+
+function initSpawner(spawnerId, colorClass, blockOptions, isOutputBlock = false) {
     const spawner = document.getElementById(spawnerId);
     spawner.onmousedown = (e) => {
         e.preventDefault(); 
+
         const newBlock = document.createElement('div');
         newBlock.classList.add('block', colorClass);
-        createDropdown(newBlock, blockOptions, isBlueBlock);
-        const rect = spawner.getBoundingClientRect();
+        createDropdown(newBlock, blockOptions, isOutputBlock);
         newBlock.style.position = 'absolute';
-        newBlock.style.left = rect.left + 'px';
-        newBlock.style.top = rect.top + 'px';
+        newBlock.style.left = (e.clientX - 60) + 'px';
+        newBlock.style.top = (e.clientY - 30) + 'px';
         document.body.appendChild(newBlock);
         newBlock.onmousedown = (ev) => {
+            if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
+            ev.stopPropagation();
+            startDrag(ev, newBlock);
+        };
+        startDrag(e, newBlock);
+    };
+}
+
+function initVarSpawner(spawnerId) {
+    const spawner = document.getElementById(spawnerId);
+    spawner.onmousedown = (e) => {
+        e.preventDefault();
+        const newBlock = document.createElement('div');
+        newBlock.classList.add('block', 'variable');
+        createVarBlock(newBlock);
+        newBlock.style.position = 'absolute';
+        newBlock.style.left = (e.clientX - 60) + 'px';
+        newBlock.style.top = (e.clientY - 30) + 'px';
+        document.body.appendChild(newBlock);
+        newBlock.onmousedown = (ev) => {
+            if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
+            ev.stopPropagation();
+            startDrag(ev, newBlock);
+        };
+        startDrag(e, newBlock);
+    };
+}
+
+function initOpSpawner(spawnerId) {
+    const spawner = document.getElementById(spawnerId);
+    spawner.onmousedown = (e) => {
+        e.preventDefault();
+        const newBlock = document.createElement('div');
+        newBlock.classList.add('block', 'operation');
+        createOpBlock(newBlock);
+        newBlock.style.position = 'absolute';
+        newBlock.style.left = (e.clientX - 75) + 'px';
+        newBlock.style.top = (e.clientY - 30) + 'px';
+        document.body.appendChild(newBlock);
+        newBlock.onmousedown = (ev) => {
+            if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
             ev.stopPropagation();
             startDrag(ev, newBlock);
         };
@@ -202,12 +320,7 @@ document.onmousemove = (e) => {
     const leftPanel = document.querySelector('.left-panel');
     const leftPanelRect = leftPanel.getBoundingClientRect();
     
-    if (x < leftPanelRect.right + 10) {
-        activeBlock.style.left = leftPanelRect.right + 10 + 'px';
-    } else {
-        activeBlock.style.left = x + 'px';
-    }
-    
+    activeBlock.style.left = x + 'px';
     activeBlock.style.top = y + 'px';
 
     const blockRect = activeBlock.getBoundingClientRect();
@@ -432,7 +545,14 @@ function findBlockUnder(x, y) {
     return null;
 }
 
-async function executeBlueprint() {
+function resolveValue(raw) {
+    const trimmed = String(raw).trim();
+    if (trimmed in variables) return variables[trimmed];
+    if (trimmed !== '' && !isNaN(trimmed)) return Number(trimmed);
+    return trimmed;
+}
+
+async function executeOutputPrint() {
     if (executionInProgress) return;
     
     executionInProgress = true;
@@ -479,7 +599,7 @@ async function executeBlueprint() {
     }
     
     if (hasPrintedAnything) {
-        addConsoleMessage('PROGRAM COMPLETED', 'complete');
+        addConsoleMessage('Программа завершена', 'complete');
     }
     
     executionInProgress = false;
@@ -489,16 +609,68 @@ async function executeBlueprint() {
 function executeBlock(block, stepNumber) {
     return new Promise(resolve => {
         block.classList.add('executing');
-        
-        const input = block.querySelector('.block-input');
         let printed = false;
-        
-        if (input) {
-            const textToPrint = input.value || '(empty)';
-            if (textToPrint !== '(empty)' || input.value) {
-                addConsoleMessage(textToPrint, 'print');
+
+        if (block.dataset.blockType === 'var') {
+            const nameInput = block.querySelector('.var-name-input');
+            const valInput  = block.querySelector('.var-val-input');
+            const name   = nameInput ? nameInput.value.trim() : '';
+            const rawVal = valInput  ? valInput.value.trim()  : '';
+            if (name) {
+                const resolved = resolveValue(rawVal);
+                variables[name] = resolved;
+                addConsoleMessage(`${name} = ${resolved}`, 'print');
                 printed = true;
             }
+            setTimeout(() => { block.classList.remove('executing'); resolve(printed); }, 0);
+            return;
+        }
+
+        if (block.dataset.blockType === 'op') {
+            const aInput   = block.querySelector('.op-a-input');
+            const sel      = block.querySelector('.op-select');
+            const bInput   = block.querySelector('.op-b-input');
+            const resInput = block.querySelector('.op-res-input');
+            const a  = resolveValue(aInput  ? aInput.value  : '0');
+            const op = sel ? sel.value : '+';
+            const b  = resolveValue(bInput  ? bInput.value  : '0');
+            const resName = resInput ? resInput.value.trim() : '';
+
+            const aNum = Number(a);
+            const bNum = Number(b);
+            let result;
+            if      (op === '+') result = aNum + bNum;
+            else if (op === '-') result = aNum - bNum;
+            else if (op === '*') result = aNum * bNum;
+            else if (op === '/') result = bNum !== 0 ? aNum / bNum : 'ошибка: деление на 0';
+            else if (op === '%') result = bNum !== 0 ? aNum % bNum : 'ошибка: деление на 0';
+            else result = 0;
+
+            if (resName) {
+                variables[resName] = result;
+                addConsoleMessage(`${resName} = ${a} ${op} ${b} = ${result}`, 'print');
+            } else {
+                addConsoleMessage(`${a} ${op} ${b} = ${result}`, 'print');
+            }
+            printed = true;
+            setTimeout(() => { block.classList.remove('executing'); resolve(printed); }, 0);
+            return;
+        }
+        
+        const input = block.querySelector('.block-input');
+        if (input) {
+            const raw = input.value.trim() || '(пусто)';
+            const output = resolveValue(raw);
+            addConsoleMessage(String(output), 'print');
+            printed = true;
+            setTimeout(() => { block.classList.remove('executing'); resolve(printed); }, 0);
+            return;
+        }
+
+        const select = block.querySelector('select');
+        if (select && select.value) {
+            addConsoleMessage(select.value, 'print');
+            printed = true;
         }
         
         setTimeout(() => {
@@ -516,7 +688,7 @@ function addConsoleMessage(message, type = 'print') {
     consoleContent.scrollTop = consoleContent.scrollHeight;
 }
 
-document.getElementById('runButton').addEventListener('click', executeBlueprint);
+document.getElementById('runButton').addEventListener('click', executeOutputPrint);
 
 document.addEventListener('selectstart', (e) => {
     if (activeBlock) {
