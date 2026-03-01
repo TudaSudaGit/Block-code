@@ -8,6 +8,7 @@ let executionInProgress = false;
 let variables = {};
 
 const operators = ["+", "-", "*", "/", "%"];
+const comparators = [">", "<", "=", "!=", ">=", "<="];
 
 const firstFive = ["I am first", "I am second", "I am third", "I am fourth", "I am fifth"];
 const nextFive = ["I am sixth", "I am seventh", "I am eighth", "I am ninth", "I am tenth"];
@@ -18,6 +19,9 @@ const nextFive5 = ["I am twenty-sixth", "I am twenty-seventh", "I am twenty-eigh
 
 initVarSpawner('spawnerVar');
 initOpSpawner('spawnerOp');
+initDeclareSpawner('spawnerDeclare');
+initAssignSpawner('spawnerAssign');
+initIfSpawner('spawnerIf');
 initSpawner('spawnerOutput', 'output', firstFive, true);
 initSpawner('spawnerPurple', 'purple', nextFive);
 initSpawner('spawnerGreen', 'green', nextFive2);
@@ -249,6 +253,107 @@ function createOpBlock(block) {
     block.dataset.blockType = 'op';
 }
 
+function createDeclareBlock(block) {
+    const label = document.createElement('span');
+    label.className = 'declare-label';
+    label.textContent = 'int';
+
+    const namesInput = document.createElement('input');
+    namesInput.type = 'text';
+    namesInput.className = 'declare-names-input';
+    namesInput.placeholder = 'x,y = 1,2';
+    namesInput.onmousedown = (e) => e.stopPropagation();
+    namesInput.onkeydown = (e) => e.stopPropagation();
+
+    const port = document.createElement("div");
+    port.classList.add("port");
+    makePortConnectable(block, port);
+    block.innerHTML = '';
+    block.classList.add('declare-input-mode');
+    block.appendChild(label);
+    block.appendChild(namesInput);
+    block.appendChild(port);
+    block.dataset.blockType = 'declare';
+}
+
+function createAssignBlock(block) {
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'assign-name-input';
+    nameInput.placeholder = 'имя';
+    nameInput.onmousedown = (e) => e.stopPropagation();
+    nameInput.onkeydown = (e) => e.stopPropagation();
+
+    const eq = document.createElement('span');
+    eq.className = 'var-eq-label';
+    eq.textContent = '=';
+
+    const exprInput = document.createElement('input');
+    exprInput.type = 'text';
+    exprInput.className = 'assign-expr-input';
+    exprInput.placeholder = 'выражение';
+    exprInput.onmousedown = (e) => e.stopPropagation();
+    exprInput.onkeydown = (e) => e.stopPropagation();
+
+    const port = document.createElement("div");
+    port.classList.add("port");
+    makePortConnectable(block, port);
+    block.innerHTML = '';
+    block.classList.add('assign-input-mode');
+    block.appendChild(nameInput);
+    block.appendChild(eq);
+    block.appendChild(exprInput);
+    block.appendChild(port);
+    block.dataset.blockType = 'assign';
+}
+
+function createIfBlock(block) {
+    const ifLabel = document.createElement('span');
+    ifLabel.className = 'if-label';
+    ifLabel.textContent = 'if';
+
+    const leftInput = document.createElement('input');
+    leftInput.type = 'text';
+    leftInput.className = 'if-left-input';
+    leftInput.placeholder = 'A';
+    leftInput.onmousedown = (e) => e.stopPropagation();
+    leftInput.onkeydown = (e) => e.stopPropagation();
+
+    const cmpSelect = document.createElement('select');
+    cmpSelect.className = 'if-cmp-select';
+    comparators.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        cmpSelect.appendChild(opt);
+    });
+
+    cmpSelect.onmousedown = (e) => e.stopPropagation();
+    const rightInput = document.createElement('input');
+    rightInput.type = 'text';
+    rightInput.className = 'if-right-input';
+    rightInput.placeholder = 'B';
+    rightInput.onmousedown = (e) => e.stopPropagation();
+    rightInput.onkeydown = (e) => e.stopPropagation();
+    const portTrue = document.createElement("div");
+    portTrue.classList.add("port", "port-true");
+    portTrue.title = 'true';
+    makePortConnectable(block, portTrue);
+    const portFalse = document.createElement("div");
+    portFalse.classList.add("port", "port-false");
+    portFalse.title = 'false';
+    makePortConnectable(block, portFalse);
+    block.innerHTML = '';
+    block.classList.add('if-input-mode');
+    block.appendChild(ifLabel);
+    block.appendChild(leftInput);
+    block.appendChild(cmpSelect);
+    block.appendChild(rightInput);
+    block.appendChild(portTrue);
+    block.appendChild(portFalse);
+    block.dataset.blockType = 'if';
+}
+
 function initSpawner(spawnerId, colorClass, blockOptions, isOutputBlock = false) {
     const spawner = document.getElementById(spawnerId);
     spawner.onmousedown = (e) => {
@@ -297,6 +402,66 @@ function initOpSpawner(spawnerId) {
         const newBlock = document.createElement('div');
         newBlock.classList.add('block', 'operation');
         createOpBlock(newBlock);
+        newBlock.style.position = 'absolute';
+        newBlock.style.left = (e.clientX - 75) + 'px';
+        newBlock.style.top = (e.clientY - 30) + 'px';
+        document.body.appendChild(newBlock);
+        newBlock.onmousedown = (ev) => {
+            if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
+            ev.stopPropagation();
+            startDrag(ev, newBlock);
+        };
+        startDrag(e, newBlock);
+    };
+}
+
+function initDeclareSpawner(spawnerId) {
+    const spawner = document.getElementById(spawnerId);
+    spawner.onmousedown = (e) => {
+        e.preventDefault();
+        const newBlock = document.createElement('div');
+        newBlock.classList.add('block', 'declare');
+        createDeclareBlock(newBlock);
+        newBlock.style.position = 'absolute';
+        newBlock.style.left = (e.clientX - 60) + 'px';
+        newBlock.style.top = (e.clientY - 30) + 'px';
+        document.body.appendChild(newBlock);
+        newBlock.onmousedown = (ev) => {
+            if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
+            ev.stopPropagation();
+            startDrag(ev, newBlock);
+        };
+        startDrag(e, newBlock);
+    };
+}
+
+function initAssignSpawner(spawnerId) {
+    const spawner = document.getElementById(spawnerId);
+    spawner.onmousedown = (e) => {
+        e.preventDefault();
+        const newBlock = document.createElement('div');
+        newBlock.classList.add('block', 'assign');
+        createAssignBlock(newBlock);
+        newBlock.style.position = 'absolute';
+        newBlock.style.left = (e.clientX - 60) + 'px';
+        newBlock.style.top = (e.clientY - 30) + 'px';
+        document.body.appendChild(newBlock);
+        newBlock.onmousedown = (ev) => {
+            if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
+            ev.stopPropagation();
+            startDrag(ev, newBlock);
+        };
+        startDrag(e, newBlock);
+    };
+}
+
+function initIfSpawner(spawnerId) {
+    const spawner = document.getElementById(spawnerId);
+    spawner.onmousedown = (e) => {
+        e.preventDefault();
+        const newBlock = document.createElement('div');
+        newBlock.classList.add('block', 'ifblock');
+        createIfBlock(newBlock);
         newBlock.style.position = 'absolute';
         newBlock.style.left = (e.clientX - 75) + 'px';
         newBlock.style.top = (e.clientY - 30) + 'px';
@@ -449,45 +614,36 @@ function makePortConnectable(block, port) {
     port.addEventListener("mousedown", e => {
         e.stopPropagation();
         e.preventDefault();
-        
         startBlock = block;
-        const startOutgoing = connections.some(conn => conn.from === startBlock);
-        if (startOutgoing) {
-            return;
+        if (block.dataset.blockType === 'if') {
+            const pClass = port.classList.contains('port-true') ? 'port-true' : 'port-false';
+            if (connections.some(conn => conn.from === block && conn.portClass === pClass)) return;
+        } else {
+            if (connections.some(conn => conn.from === startBlock)) return;
         }
-        
+        const dragPortClass = port.classList.contains('port-true') ? 'port-true'
+                            : port.classList.contains('port-false') ? 'port-false'
+                            : null;
         activeLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-        activeLine.setAttribute("stroke", "#ffffff");
+        activeLine.setAttribute("stroke", dragPortClass === 'port-true' ? "#4CAF50" : dragPortClass === 'port-false' ? "#ef5350" : "#ffffff");
         activeLine.setAttribute("stroke-width", "3");
         activeLine.setAttribute("fill", "none");
         activeLine.setAttribute("marker-end", "url(#arrow)");
         svg.appendChild(activeLine);
-
         function move(ev) {
             const r = startBlock.getBoundingClientRect();
-            const x1 = r.right;
-            const y1 = r.top + r.height / 2;
-            const x2 = ev.clientX;
-            const y2 = ev.clientY;
-            setPolylinePath(activeLine, x1, y1, x2, y2);
+            setPolylinePath(activeLine, r.right, r.top + r.height / 2, ev.clientX, ev.clientY);
         }
-
         function up(ev) {
             document.removeEventListener("mousemove", move);
             document.removeEventListener("mouseup", up);
-            
             const target = findBlockUnder(ev.clientX, ev.clientY);
-            
             if (target && target !== startBlock) {
                 const targetIncoming = connections.some(conn => conn.to === target);
-                const startOutgoing = connections.some(conn => conn.from === startBlock);
-                
+                const startOutgoing = block.dataset.blockType !== 'if' && connections.some(conn => conn.from === startBlock);
+
                 if (!targetIncoming && !startOutgoing && !wouldCreateCycle(startBlock, target)) {
-                    connections.push({
-                        from: startBlock,
-                        to: target,
-                        line: activeLine
-                    });
+                    connections.push({ from: startBlock, to: target, line: activeLine, portClass: dragPortClass });
                     updateConnections();
                 } else {
                     activeLine.remove();
@@ -495,11 +651,9 @@ function makePortConnectable(block, port) {
             } else {
                 activeLine.remove();
             }
-
             activeLine = null;
             startBlock = null;
         }
-
         document.addEventListener("mousemove", move);
         document.addEventListener("mouseup", up);
     });
@@ -552,131 +706,252 @@ function resolveValue(raw) {
     return trimmed;
 }
 
+function tokenize(expr) {
+    const tokens = [];
+    let i = 0;
+    while (i < expr.length) {
+        const ch = expr[i];
+        if (ch === ' ') { i++; continue; }
+        if (ch >= '0' && ch <= '9') {
+            let num = '';
+            while (i < expr.length && expr[i] >= '0' && expr[i] <= '9') num += expr[i++];
+            tokens.push({ type: 'num', value: Number(num) });
+            continue;
+        }
+        if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch === '_') {
+            let name = '';
+            while (i < expr.length && (/[a-zA-Z0-9_]/.test(expr[i]))) name += expr[i++];
+            if (!(name in variables)) throw new Error(`Переменная "${name}" не объявлена`);
+            tokens.push({ type: 'num', value: Number(variables[name]) });
+            continue;
+        }
+        if ('()+-*/%'.includes(ch)) {
+            tokens.push({ type: ch === '(' || ch === ')' ? 'paren' : 'op', value: ch });
+            i++;
+            continue;
+        }
+        throw new Error(`Неизвестный символ: "${ch}"`);
+    }
+    return tokens;
+}
+
+function parseExpr(tokens, pos) {
+    let [left, p] = parseTerm(tokens, pos);
+    while (p < tokens.length && (tokens[p].value === '+' || tokens[p].value === '-')) {
+        const op = tokens[p].value;
+        let right; [right, p] = parseTerm(tokens, p + 1);
+        left = op === '+' ? left + right : left - right;
+    }
+    return [left, p];
+}
+
+function parseTerm(tokens, pos) {
+    let [left, p] = parseFactor(tokens, pos);
+    while (p < tokens.length && (tokens[p].value === '*' || tokens[p].value === '/' || tokens[p].value === '%')) {
+        const op = tokens[p].value;
+        let right; [right, p] = parseFactor(tokens, p + 1);
+        if (op === '*') left = left * right;
+        else if (op === '/') { if (right === 0) throw new Error('Деление на 0'); left = Math.trunc(left / right); }
+        else left = left % right;
+    }
+    return [left, p];
+}
+
+function parseFactor(tokens, pos) {
+    if (pos >= tokens.length) throw new Error('Неожиданный конец выражения');
+    const tok = tokens[pos];
+    if (tok.type === 'op' && tok.value === '-') {
+        const [val, p] = parseFactor(tokens, pos + 1);
+        return [-val, p];
+    }
+    if (tok.type === 'paren' && tok.value === '(') {
+        const [val, p] = parseExpr(tokens, pos + 1);
+        if (p >= tokens.length || tokens[p].value !== ')') throw new Error('Ожидалась )');
+        return [val, p + 1];
+    }
+    if (tok.type === 'num') return [tok.value, pos + 1];
+    throw new Error(`Неожиданный токен: "${tok.value}"`);
+}
+
+function evalExpr(exprStr) {
+    const tokens = tokenize(exprStr.trim());
+    if (tokens.length === 0) throw new Error('Пустое выражение');
+    const [result, pos] = parseExpr(tokens, 0);
+    if (pos !== tokens.length) throw new Error('Лишние символы в выражении');
+    return result;
+}
+
+function evalCondition(leftStr, cmp, rightStr) {
+    const a = evalExpr(leftStr);
+    const b = evalExpr(rightStr);
+    if (cmp === '>')  return a > b;
+    if (cmp === '<')  return a < b;
+    if (cmp === '=')  return a === b;
+    if (cmp === '!=') return a !== b;
+    if (cmp === '>=') return a >= b;
+    if (cmp === '<=') return a <= b;
+    return false;
+}
+
+function markBlockError(block) {
+    block.classList.add('block-error');
+    setTimeout(() => block.classList.remove('block-error'), 2000);
+}
+
+function getNextBlock(fromBlock, portClass) {
+    for (let conn of connections) {
+        if (conn.from !== fromBlock) continue;
+        if (portClass === null && !conn.portClass) return conn.to;
+        if (portClass !== null && conn.portClass === portClass) return conn.to;
+    }
+    return null;
+}
+
 async function executeOutputPrint() {
     if (executionInProgress) return;
-    
     executionInProgress = true;
+    variables = {};
     const runButton = document.getElementById('runButton');
     runButton.classList.add('running');
-    
-    const startBlock = document.getElementById('startBlock');
-    
+    const startBlockEl = document.getElementById('startBlock');
     let currentBlock = null;
     for (let conn of connections) {
-        if (conn.from === startBlock) {
-            currentBlock = conn.to;
-            break;
-        }
+        if (conn.from === startBlockEl) { currentBlock = conn.to; break; }
     }
-    
     if (!currentBlock) {
         executionInProgress = false;
         runButton.classList.remove('running');
         return;
     }
-    
     await new Promise(resolve => setTimeout(resolve, 500));
-    
     let stepCount = 0;
     let hasPrintedAnything = false;
-    
     while (currentBlock) {
-        const printed = await executeBlock(currentBlock, stepCount++);
-        if (printed) hasPrintedAnything = true;
-        
-        let nextBlock = null;
-        for (let conn of connections) {
-            if (conn.from === currentBlock) {
-                nextBlock = conn.to;
-                break;
-            }
+        let result;
+        try {
+            result = await executeBlock(currentBlock, stepCount++);
+        } catch (err) {
+            addConsoleMessage('ОШИБКА: ' + err.message, 'error');
+            break;
         }
-        currentBlock = nextBlock;
-        
-        if (currentBlock) {
-            await new Promise(resolve => setTimeout(resolve, 0));
-        }
+        if (result.printed) hasPrintedAnything = true;
+        currentBlock = result.nextBlock;
+        if (currentBlock) await new Promise(resolve => setTimeout(resolve, 0));
     }
-    
-    if (hasPrintedAnything) {
-        addConsoleMessage('Программа завершена', 'complete');
-    }
-    
+    if (hasPrintedAnything) addConsoleMessage('Программа завершена', 'complete');
     executionInProgress = false;
     runButton.classList.remove('running');
 }
 
 function executeBlock(block, stepNumber) {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
         block.classList.add('executing');
-        let printed = false;
-
-        if (block.dataset.blockType === 'var') {
-            const nameInput = block.querySelector('.var-name-input');
-            const valInput  = block.querySelector('.var-val-input');
-            const name   = nameInput ? nameInput.value.trim() : '';
-            const rawVal = valInput  ? valInput.value.trim()  : '';
-            if (name) {
-                const resolved = resolveValue(rawVal);
-                variables[name] = resolved;
-                addConsoleMessage(`${name} = ${resolved}`, 'print');
-                printed = true;
+        setTimeout(() => block.classList.remove('executing'), 300);
+        try {
+            if (block.dataset.blockType === 'declare') {
+                const namesInput = block.querySelector('.declare-names-input');
+                const raw = namesInput ? namesInput.value : '';
+                const parts = raw.split('=');
+                const names = parts[0].split(',').map(s => s.trim()).filter(s => s.length > 0);
+                const valueStrs = parts[1] ? parts[1].split(',').map(s => s.trim()) : [];
+                if (names.length === 0) { markBlockError(block); throw new Error('Не указаны имена переменных'); }
+                names.forEach((name, i) => {
+                    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) { markBlockError(block); throw new Error(`Недопустимое имя: "${name}"`); }
+                    let val = 0;
+                    if (valueStrs[i] !== undefined && valueStrs[i] !== '') {
+                        try { val = evalExpr(valueStrs[i]); } catch { val = 0; }
+                    }
+                    variables[name] = val;
+                });
+                const display = names.map((n) => `${n}=${variables[n]}`).join(', ');
+                addConsoleMessage(`int ${display}`, 'print');
+                resolve({ printed: true, nextBlock: getNextBlock(block, null) });
+                return;
             }
-            setTimeout(() => { block.classList.remove('executing'); resolve(printed); }, 0);
-            return;
-        }
-
-        if (block.dataset.blockType === 'op') {
-            const aInput   = block.querySelector('.op-a-input');
-            const sel      = block.querySelector('.op-select');
-            const bInput   = block.querySelector('.op-b-input');
-            const resInput = block.querySelector('.op-res-input');
-            const a  = resolveValue(aInput  ? aInput.value  : '0');
-            const op = sel ? sel.value : '+';
-            const b  = resolveValue(bInput  ? bInput.value  : '0');
-            const resName = resInput ? resInput.value.trim() : '';
-
-            const aNum = Number(a);
-            const bNum = Number(b);
-            let result;
-            if      (op === '+') result = aNum + bNum;
-            else if (op === '-') result = aNum - bNum;
-            else if (op === '*') result = aNum * bNum;
-            else if (op === '/') result = bNum !== 0 ? aNum / bNum : 'ошибка: деление на 0';
-            else if (op === '%') result = bNum !== 0 ? aNum % bNum : 'ошибка: деление на 0';
-            else result = 0;
-
-            if (resName) {
-                variables[resName] = result;
-                addConsoleMessage(`${resName} = ${a} ${op} ${b} = ${result}`, 'print');
-            } else {
-                addConsoleMessage(`${a} ${op} ${b} = ${result}`, 'print');
+            if (block.dataset.blockType === 'assign') {
+                const nameInput = block.querySelector('.assign-name-input');
+                const exprInput = block.querySelector('.assign-expr-input');
+                const name = nameInput ? nameInput.value.trim() : '';
+                const exprStr = exprInput ? exprInput.value.trim() : '';
+                if (!name) { markBlockError(block); throw new Error('Не указано имя переменной'); }
+                if (!(name in variables)) { markBlockError(block); throw new Error(`Переменная "${name}" не объявлена`); }
+                const result = evalExpr(exprStr);
+                variables[name] = result;
+                addConsoleMessage(`${name} = ${result}`, 'print');
+                resolve({ printed: true, nextBlock: getNextBlock(block, null) });
+                return;
             }
-            printed = true;
-            setTimeout(() => { block.classList.remove('executing'); resolve(printed); }, 0);
-            return;
+            if (block.dataset.blockType === 'if') {
+                const leftInput  = block.querySelector('.if-left-input');
+                const cmpSelect  = block.querySelector('.if-cmp-select');
+                const rightInput = block.querySelector('.if-right-input');
+                const leftStr  = leftInput  ? leftInput.value.trim()  : '0';
+                const cmp      = cmpSelect  ? cmpSelect.value         : '=';
+                const rightStr = rightInput ? rightInput.value.trim() : '0';
+                const condition = evalCondition(leftStr, cmp, rightStr);
+                addConsoleMessage(`if (${leftStr} ${cmp} ${rightStr}) → ${condition ? 'true' : 'false'}`, 'print');
+                resolve({ printed: true, nextBlock: condition ? getNextBlock(block, 'port-true') : getNextBlock(block, 'port-false') });
+                return;
+            }
+            if (block.dataset.blockType === 'var') {
+                const nameInput = block.querySelector('.var-name-input');
+                const valInput  = block.querySelector('.var-val-input');
+                const name   = nameInput ? nameInput.value.trim() : '';
+                const rawVal = valInput  ? valInput.value.trim()  : '';
+                if (name) {
+                    let resolved;
+                    try { resolved = evalExpr(rawVal); } catch { resolved = resolveValue(rawVal); }
+                    variables[name] = resolved;
+                    addConsoleMessage(`${name} = ${resolved}`, 'print');
+                }
+                resolve({ printed: !!name, nextBlock: getNextBlock(block, null) });
+                return;
+            }
+            if (block.dataset.blockType === 'op') {
+                const aInput   = block.querySelector('.op-a-input');
+                const sel      = block.querySelector('.op-select');
+                const bInput   = block.querySelector('.op-b-input');
+                const resInput = block.querySelector('.op-res-input');
+                const a  = resolveValue(aInput  ? aInput.value  : '0');
+                const op = sel ? sel.value : '+';
+                const b  = resolveValue(bInput  ? bInput.value  : '0');
+                const resName = resInput ? resInput.value.trim() : '';
+                const aNum = Number(a);
+                const bNum = Number(b);
+                let result;
+                if      (op === '+') result = aNum + bNum;
+                else if (op === '-') result = aNum - bNum;
+                else if (op === '*') result = aNum * bNum;
+                else if (op === '/') result = bNum !== 0 ? aNum / bNum : 'ошибка: деление на 0';
+                else if (op === '%') result = bNum !== 0 ? aNum % bNum : 'ошибка: деление на 0';
+                else result = 0;
+                if (resName) {
+                    variables[resName] = result;
+                    addConsoleMessage(`${resName} = ${a} ${op} ${b} = ${result}`, 'print');
+                } else {
+                    addConsoleMessage(`${a} ${op} ${b} = ${result}`, 'print');
+                }
+                resolve({ printed: true, nextBlock: getNextBlock(block, null) });
+                return;
+            }
+            const input = block.querySelector('.block-input');
+            if (input) {
+                const raw = input.value.trim() || '(пусто)';
+                const output = resolveValue(raw);
+                addConsoleMessage(String(output), 'print');
+                resolve({ printed: true, nextBlock: getNextBlock(block, null) });
+                return;
+            }
+            const select = block.querySelector('select');
+            if (select && select.value) {
+                addConsoleMessage(select.value, 'print');
+                resolve({ printed: true, nextBlock: getNextBlock(block, null) });
+                return;
+            }
+            resolve({ printed: false, nextBlock: getNextBlock(block, null) });
+        } catch(err) {
+            reject(err);
         }
-        
-        const input = block.querySelector('.block-input');
-        if (input) {
-            const raw = input.value.trim() || '(пусто)';
-            const output = resolveValue(raw);
-            addConsoleMessage(String(output), 'print');
-            printed = true;
-            setTimeout(() => { block.classList.remove('executing'); resolve(printed); }, 0);
-            return;
-        }
-
-        const select = block.querySelector('select');
-        if (select && select.value) {
-            addConsoleMessage(select.value, 'print');
-            printed = true;
-        }
-        
-        setTimeout(() => {
-            block.classList.remove('executing');
-            resolve(printed);
-        }, 0);
     });
 }
 
