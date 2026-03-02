@@ -692,6 +692,7 @@ svg {
     border-left-color: #ff1744;
     color: #ff6b6b;
     background: rgba(255,23,68,0.08);
+<<<<<<< HEAD
 }
 
 .block.array {
@@ -763,4 +764,6 @@ svg {
     font-weight: bold;
     color: #333;
     flex-shrink: 0;
+=======
+>>>>>>> 403f231b694874e316435c3a7c0792ecf9ce4d1b
 }

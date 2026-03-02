@@ -23,7 +23,11 @@ initDeclareSpawner('spawnerDeclare');
 initAssignSpawner('spawnerAssign');
 initIfSpawner('spawnerIf');
 initSpawner('spawnerOutput', 'output', firstFive, true);
+<<<<<<< HEAD
 initArraySpawner('spawnerArray');
+=======
+initSpawner('spawnerPurple', 'purple', nextFive);
+>>>>>>> 403f231b694874e316435c3a7c0792ecf9ce4d1b
 initSpawner('spawnerGreen', 'green', nextFive2);
 initSpawner('spawnerOrange', 'orange', nextFive3);
 initSpawner('spawnerCyan', 'cyan', nextFive4);
@@ -701,11 +705,15 @@ function findBlockUnder(x, y) {
 
 function resolveValue(raw) {
     const trimmed = String(raw).trim();
+<<<<<<< HEAD
     if (trimmed in variables) {
         const val = variables[trimmed];
         if (Array.isArray(val)) return val;
         return val;
     }
+=======
+    if (trimmed in variables) return variables[trimmed];
+>>>>>>> 403f231b694874e316435c3a7c0792ecf9ce4d1b
     if (trimmed !== '' && !isNaN(trimmed)) return Number(trimmed);
     return trimmed;
 }
@@ -897,6 +905,7 @@ function executeBlock(block, stepNumber) {
                 resolve({ printed: true, nextBlock: condition ? getNextBlock(block, 'port-true') : getNextBlock(block, 'port-false') });
                 return;
             }
+<<<<<<< HEAD
             if (block.dataset.blockType === 'array') {
                 const nameInput = block.querySelector('.array-name-input');
                 const sizeInput = block.querySelector('.array-size-input');
@@ -945,6 +954,8 @@ function executeBlock(block, stepNumber) {
                 resolve({ printed: true, nextBlock: getNextBlock(block, null) });
                 return;
             }
+=======
+>>>>>>> 403f231b694874e316435c3a7c0792ecf9ce4d1b
             if (block.dataset.blockType === 'var') {
                 const nameInput = block.querySelector('.var-name-input');
                 const valInput  = block.querySelector('.var-val-input');
