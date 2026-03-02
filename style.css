@@ -542,8 +542,10 @@ svg {
 
 .left-panel .block.declare,
 .left-panel .block.assign,
-.left-panel .block.ifblock {
+.left-panel .block.ifblock,
+.left-panel .block.array {
     width: 120px;
+    height: 60px;
     font-size: 11px;
 }
 
@@ -692,13 +694,14 @@ svg {
     border-left-color: #ff1744;
     color: #ff6b6b;
     background: rgba(255,23,68,0.08);
-<<<<<<< HEAD
 }
 
 .block.array {
     border: 5px solid #BA68C8;
     background-color: #AB47BC;
     color: rgb(0, 0, 0);
+    width: 200px;
+    height: 70px;
 }
 
 .block.array.array-input-mode {
@@ -764,6 +767,4 @@ svg {
     font-weight: bold;
     color: #333;
     flex-shrink: 0;
-=======
->>>>>>> 403f231b694874e316435c3a7c0792ecf9ce4d1b
 }

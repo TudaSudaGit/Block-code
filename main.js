@@ -23,11 +23,7 @@ initDeclareSpawner('spawnerDeclare');
 initAssignSpawner('spawnerAssign');
 initIfSpawner('spawnerIf');
 initSpawner('spawnerOutput', 'output', firstFive, true);
-<<<<<<< HEAD
 initArraySpawner('spawnerArray');
-=======
-initSpawner('spawnerPurple', 'purple', nextFive);
->>>>>>> 403f231b694874e316435c3a7c0792ecf9ce4d1b
 initSpawner('spawnerGreen', 'green', nextFive2);
 initSpawner('spawnerOrange', 'orange', nextFive3);
 initSpawner('spawnerCyan', 'cyan', nextFive4);
@@ -705,15 +701,11 @@ function findBlockUnder(x, y) {
 
 function resolveValue(raw) {
     const trimmed = String(raw).trim();
-<<<<<<< HEAD
     if (trimmed in variables) {
         const val = variables[trimmed];
         if (Array.isArray(val)) return val;
         return val;
     }
-=======
-    if (trimmed in variables) return variables[trimmed];
->>>>>>> 403f231b694874e316435c3a7c0792ecf9ce4d1b
     if (trimmed !== '' && !isNaN(trimmed)) return Number(trimmed);
     return trimmed;
 }
@@ -733,6 +725,27 @@ function tokenize(expr) {
         if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch === '_') {
             let name = '';
             while (i < expr.length && (/[a-zA-Z0-9_]/.test(expr[i]))) name += expr[i++];
+               if (i < expr.length && expr[i] === '[') {
+                i++; 
+                let indexExpr = '';
+                let bracketCount = 1;
+                while (i < expr.length && bracketCount > 0) {
+                    const c = expr[i];
+                    if (c === '[') bracketCount++;
+                    else if (c === ']') bracketCount--;
+                    
+                    if (bracketCount > 0) {
+                        indexExpr += c;
+                    }
+                    i++;
+                }
+                tokens.push({ 
+                    type: 'array_access', 
+                    name: name,
+                    indexExpr: indexExpr.trim()
+                });
+                continue;
+            }
             if (!(name in variables)) throw new Error(`Переменная "${name}" не объявлена`);
             tokens.push({ type: 'num', value: Number(variables[name]) });
             continue;
@@ -772,6 +785,23 @@ function parseTerm(tokens, pos) {
 function parseFactor(tokens, pos) {
     if (pos >= tokens.length) throw new Error('Неожиданный конец выражения');
     const tok = tokens[pos];
+    if (tok.type === 'array_access') {
+        const arrayName = tok.name;
+        const indexExpr = tok.indexExpr;
+        if (!(arrayName in variables) || !Array.isArray(variables[arrayName])) {
+            throw new Error(`"${arrayName}" не является массивом`);
+        }
+        const indexTokens = tokenize(indexExpr);
+        const [index, _] = parseExpr(indexTokens, 0);
+        if (!Number.isInteger(index) || index < 0) {
+            throw new Error(`Индекс массива должен быть неотрицательным целым числом: ${index}`);
+        }
+        const array = variables[arrayName];
+        if (index >= array.length) {
+            throw new Error(`Индекс ${index} вне границ массива "${arrayName}" (длина: ${array.length})`);
+        }
+        return [array[index], pos + 1];
+    }
     if (tok.type === 'op' && tok.value === '-') {
         const [val, p] = parseFactor(tokens, pos + 1);
         return [-val, p];
@@ -884,14 +914,40 @@ function executeBlock(block, stepNumber) {
                 const nameInput = block.querySelector('.assign-name-input');
                 const exprInput = block.querySelector('.assign-expr-input');
                 const name = nameInput ? nameInput.value.trim() : '';
-                const exprStr = exprInput ? exprInput.value.trim() : '';
-                if (!name) { markBlockError(block); throw new Error('Не указано имя переменной'); }
-                if (!(name in variables)) { markBlockError(block); throw new Error(`Переменная "${name}" не объявлена`); }
-                const result = evalExpr(exprStr);
-                variables[name] = result;
-                addConsoleMessage(`${name} = ${result}`, 'print');
-                resolve({ printed: true, nextBlock: getNextBlock(block, null) });
-                return;
+                const arrayMatch = expr.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\[([^\]]+)\]\s*=\s*(.+)$/);
+                if (arrayMatch) {
+                    const arrayName = arrayMatch[1];
+                    const indexExpr = arrayMatch[2].trim();
+                    const valueExpr = arrayMatch[3].trim();
+                    if (!(arrayName in variables) || !Array.isArray(variables[arrayName])) {
+                        markBlockError(block);
+                        throw new Error(`"${arrayName}" не является массивом`);
+                    }
+                    const index = evalExpr(indexExpr);
+                    if (!Number.isInteger(index) || index < 0) {
+                        markBlockError(block);
+                        throw new Error(`Индекс массива должен быть неотрицательным целым числом: ${index}`);
+                    }
+                    const array = variables[arrayName];
+                    if (index >= array.length) {
+                        markBlockError(block);
+                        throw new Error(`Индекс ${index} вне границ массива "${arrayName}" (длина: ${array.length})`);
+                    }
+                    const value = evalExpr(valueExpr);
+                    array[index] = value;
+                    addConsoleMessage(`${arrayName}[${index}] = ${value}`, 'print');
+                    resolve({ printed: true, nextBlock: getNextBlock(block, null) });
+                    return;
+                } else {
+                    const exprStr = exprInput ? exprInput.value.trim() : '';
+                    if (!name) { markBlockError(block); throw new Error('Не указано имя переменной'); }
+                    if (!(name in variables)) { markBlockError(block); throw new Error(`Переменная "${name}" не объявлена`); }
+                    const result = evalExpr(exprStr);
+                    variables[name] = result;
+                    addConsoleMessage(`${name} = ${result}`, 'print');
+                    resolve({ printed: true, nextBlock: getNextBlock(block, null) });
+                    return;
+                }
             }
             if (block.dataset.blockType === 'if') {
                 const leftInput  = block.querySelector('.if-left-input');
@@ -905,7 +961,6 @@ function executeBlock(block, stepNumber) {
                 resolve({ printed: true, nextBlock: condition ? getNextBlock(block, 'port-true') : getNextBlock(block, 'port-false') });
                 return;
             }
-<<<<<<< HEAD
             if (block.dataset.blockType === 'array') {
                 const nameInput = block.querySelector('.array-name-input');
                 const sizeInput = block.querySelector('.array-size-input');
@@ -954,8 +1009,6 @@ function executeBlock(block, stepNumber) {
                 resolve({ printed: true, nextBlock: getNextBlock(block, null) });
                 return;
             }
-=======
->>>>>>> 403f231b694874e316435c3a7c0792ecf9ce4d1b
             if (block.dataset.blockType === 'var') {
                 const nameInput = block.querySelector('.var-name-input');
                 const valInput  = block.querySelector('.var-val-input');
@@ -1044,7 +1097,7 @@ function createArrayBlock(block) {
     const elementsInput = document.createElement('input');
     elementsInput.type = 'text';
     elementsInput.className = 'array-elements-input';
-    elementsInput.placeholder = 'эл-ты через запятую';
+    elementsInput.placeholder = 'элементы через запятую';
     elementsInput.onmousedown = (e) => e.stopPropagation();
     elementsInput.onkeydown = (e) => e.stopPropagation();
 
