@@ -27,7 +27,7 @@ initArraySpawner('spawnerArray');
 initSpawner('spawnerGreen', 'green', nextFive2);
 initSpawner('spawnerOrange', 'orange', nextFive3);
 initSpawner('spawnerCyan', 'cyan', nextFive4);
-initSpawner('spawnerYellow', 'yellow', nextFive5);
+initWhileSpawner('spawnerWhile');
 
 const consoleContent = document.getElementById('consoleContent');
 const clearConsoleBtn = document.getElementById('clearConsole');
@@ -949,6 +949,31 @@ function executeBlock(block, stepNumber) {
                     return;
                 }
             }
+            if (block.dataset.blockType === 'while') {
+                const leftInput = block.querySelector('.while-left-input');
+                const cmpSelect = block.querySelector('.while-cmp-select');
+                const rightInput = block.querySelector('.while-right-input');
+                const leftStr = leftInput ? leftInput.value.trim() : '0';
+                const cmp = cmpSelect ? cmpSelect.value : '=';
+                const rightStr = rightInput ? rightInput.value.trim() : '0';
+                const condition = evalCondition(leftStr, cmp, rightStr);
+                addConsoleMessage(`while (${leftStr} ${cmp} ${rightStr}) → ${condition ? 'true' : 'false'}`, 'print');
+                let nextBlock = null;
+                let shouldLoop = false;
+                if (condition) {
+                    nextBlock = getNextBlock(block, 'port-while-true');
+                    shouldLoop = true;
+                } else {
+                    nextBlock = getNextBlock(block, 'port-while-false');
+                    shouldLoop = false;
+                }
+                resolve({ 
+                    printed: true, 
+                    nextBlock: nextBlock,
+                    shouldLoop: shouldLoop
+                });
+                return;
+            }
             if (block.dataset.blockType === 'if') {
                 const leftInput  = block.querySelector('.if-left-input');
                 const cmpSelect  = block.querySelector('.if-cmp-select');
@@ -1125,6 +1150,123 @@ function initArraySpawner(spawnerId) {
         createArrayBlock(newBlock);
         newBlock.style.position = 'absolute';
         newBlock.style.left = (e.clientX - 60) + 'px';
+        newBlock.style.top = (e.clientY - 30) + 'px';
+        document.body.appendChild(newBlock);
+        newBlock.onmousedown = (ev) => {
+            if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
+            ev.stopPropagation();
+            startDrag(ev, newBlock);
+        };
+        startDrag(e, newBlock);
+    };
+}
+
+function createWhileBlock(block) {
+    const whileLabel = document.createElement('span');
+    whileLabel.className = 'while-label';
+    whileLabel.textContent = 'while';
+    const leftInput = document.createElement('input');
+    leftInput.type = 'text';
+    leftInput.className = 'while-left-input';
+    leftInput.placeholder = 'A';
+    leftInput.onmousedown = (e) => e.stopPropagation();
+    leftInput.onkeydown = (e) => e.stopPropagation();
+    const cmpSelect = document.createElement('select');
+    cmpSelect.className = 'while-cmp-select';
+    comparators.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        cmpSelect.appendChild(opt);
+    });
+    cmpSelect.onmousedown = (e) => e.stopPropagation();
+    const rightInput = document.createElement('input');
+    rightInput.type = 'text';
+    rightInput.className = 'while-right-input';
+    rightInput.placeholder = 'B';
+    rightInput.onmousedown = (e) => e.stopPropagation();
+    rightInput.onkeydown = (e) => e.stopPropagation();
+    const portTrue = document.createElement("div");
+    portTrue.classList.add("port", "port-while-true");
+    portTrue.title = 'true (выполнить тело цикла)';
+    const portFalse = document.createElement("div");
+    portFalse.classList.add("port", "port-while-false");
+    portFalse.title = 'false (выход из цикла)';
+    makePortConnectable(block, portTrue);
+    makePortConnectable(block, portFalse);
+    block.innerHTML = '';
+    block.classList.add('while-input-mode');
+    block.appendChild(whileLabel);
+    block.appendChild(leftInput);
+    block.appendChild(cmpSelect);
+    block.appendChild(rightInput);
+    block.appendChild(portTrue);
+    block.appendChild(portFalse);;
+}
+
+async function executeOutputPrint() {
+    if (executionInProgress) return;
+    executionInProgress = true;
+    variables = {};
+    const runButton = document.getElementById('runButton');
+    runButton.classList.add('running');
+    const startBlockEl = document.getElementById('startBlock');
+    let currentBlock = null;
+    for (let conn of connections) {
+        if (conn.from === startBlockEl) { currentBlock = conn.to; break; }
+    }
+    if (!currentBlock) {
+        executionInProgress = false;
+        runButton.classList.remove('running');
+        return;
+    }
+    await new Promise(resolve => setTimeout(resolve, 500));
+    let stepCount = 0;
+    let hasPrintedAnything = false;
+    const loopDetector = new Map();
+    const MAX_ITERATIONS = 1000;
+    while (currentBlock) {
+        stepCount++;
+        if (stepCount > MAX_ITERATIONS) {
+            addConsoleMessage('ОШИБКА: Превышен лимит итераций (возможно, бесконечный цикл)', 'error');
+            break;
+        }
+        let result;
+        try {
+            result = await executeBlock(currentBlock, stepCount);
+        } catch (err) {
+            addConsoleMessage('ОШИБКА: ' + err.message, 'error');
+            break;
+        }
+        if (result.printed) hasPrintedAnything = true;
+        if (currentBlock.dataset.blockType === 'while' && result.shouldLoop) {
+            const blockId = currentBlock.id || Array.from(currentBlock.classList).join('.');
+            const count = loopDetector.get(blockId) || 0;
+            if (count > 100) {
+                addConsoleMessage('ОШИБКА: Обнаружен бесконечный цикл в while блоке', 'error');
+                break;
+            }
+            loopDetector.set(blockId, count + 1);
+        }
+        currentBlock = result.nextBlock;
+        if (currentBlock && currentBlock.dataset.blockType === 'while') {
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+    }
+    if (hasPrintedAnything) addConsoleMessage('Программа завершена', 'complete');
+    executionInProgress = false;
+    runButton.classList.remove('running');
+}
+
+function initWhileSpawner(spawnerId) {
+    const spawner = document.getElementById(spawnerId);
+    spawner.onmousedown = (e) => {
+        e.preventDefault();
+        const newBlock = document.createElement('div');
+        newBlock.classList.add('block', 'while');
+        createWhileBlock(newBlock);
+        newBlock.style.position = 'absolute';
+        newBlock.style.left = (e.clientX - 75) + 'px';
         newBlock.style.top = (e.clientY - 30) + 'px';
         document.body.appendChild(newBlock);
         newBlock.onmousedown = (ev) => {

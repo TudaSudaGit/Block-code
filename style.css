@@ -543,7 +543,8 @@ svg {
 .left-panel .block.declare,
 .left-panel .block.assign,
 .left-panel .block.ifblock,
-.left-panel .block.array {
+.left-panel .block.array,
+.left-panel .block.while {
     width: 120px;
     height: 60px;
     font-size: 11px;
@@ -767,4 +768,69 @@ svg {
     font-weight: bold;
     color: #333;
     flex-shrink: 0;
+}
+
+.block.while {
+    border: 5px solid #FFF176;
+    background-color: #FFEE58;
+    color: rgb(0, 0, 0);
+    width: 220px;
+    height: 80px;
+}
+
+.block.while.while-input-mode {
+    padding: 0 18px 0 8px;
+    gap: 4px;
+    overflow: visible;
+    flex-wrap: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.while-label {
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+    flex-shrink: 0;
+}
+
+.while-left-input,
+.while-right-input {
+    width: 40px;
+    background: rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.2);
+    border-radius: 4px;
+    color: #000;
+    font-size: 11px;
+    font-weight: bold;
+    text-align: center;
+    outline: none;
+    padding: 3px 2px;
+}
+
+.while-cmp-select {
+    background: rgba(0,0,0,0.15);
+    border: 1px solid rgba(0,0,0,0.2);
+    border-radius: 4px;
+    color: #000;
+    font-size: 11px;
+    font-weight: bold;
+    text-align: center;
+    outline: none;
+    width: 45px;
+    cursor: pointer;
+    padding: 2px;
+}
+
+.port-while-true {
+    top: 30% !important;
+    background: #4CAF50 !important;
+    right: -5px;
+}
+
+.port-while-false {
+    top: 70% !important;
+    background: #ef5350 !important;
+    right: -5px;
 }
