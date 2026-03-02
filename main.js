@@ -5,16 +5,25 @@ let connections = [];
 let activeLine = null;
 let startBlock = null;
 let executionInProgress = false;
+let variables = {};
 
-const firstFive = ["Print text", "Show message", "Display value", "Output line", "Write to console"];
-const nextFive = ["Add 5+3", "Multiply 4*7", "Divide 10/2", "Subtract 9-4", "Calculate 2^8"];
-const nextFive2 = ["Set Variable X=10", "Set Variable Y=20", "Set Variable Name='Code'", "Set Variable Count=5", "Set Variable Active=true"];
-const nextFive3 = ["If X > Y", "If Count < 10", "If Name == 'Code'", "If Active == true", "Else Statement"];
-const nextFive4 = ["Loop 5 times", "While True", "For each item", "Break loop", "Continue"];
-const nextFive5 = ["Return value", "End function", "Throw error", "Try catch", "Finally"];
+const operators = ["+", "-", "*", "/", "%"];
+const comparators = [">", "<", "=", "!=", ">=", "<="];
 
-initSpawner('spawnerBlue', 'blue', firstFive, true);
-initSpawner('spawnerPurple', 'purple', nextFive);
+const firstFive = ["I am first", "I am second", "I am third", "I am fourth", "I am fifth"];
+const nextFive = ["I am sixth", "I am seventh", "I am eighth", "I am ninth", "I am tenth"];
+const nextFive2 = ["I am eleventh", "I am twelfth", "I am thirteenth", "I am fourteenth", "I am fifteenth"];
+const nextFive3 = ["I am sixteenth", "I am seventeenth", "I am eighteenth", "I am nineteenth", "I am twentieth"];
+const nextFive4 = ["I am twenty-first", "I am twenty-second", "I am twenty-third", "I am twenty-fourth", "I am twenty-fifth"];
+const nextFive5 = ["I am twenty-sixth", "I am twenty-seventh", "I am twenty-eighth", "I am twenty-ninth", "I am thirtieth"];
+
+initVarSpawner('spawnerVar');
+initOpSpawner('spawnerOp');
+initDeclareSpawner('spawnerDeclare');
+initAssignSpawner('spawnerAssign');
+initIfSpawner('spawnerIf');
+initSpawner('spawnerOutput', 'output', firstFive, true);
+initArraySpawner('spawnerArray');
 initSpawner('spawnerGreen', 'green', nextFive2);
 initSpawner('spawnerOrange', 'orange', nextFive3);
 initSpawner('spawnerCyan', 'cyan', nextFive4);
@@ -56,7 +65,7 @@ marker.setAttribute("orient", "auto");
 
 const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
 path.setAttribute("d", "M0,0 L10,5 L0,10 Z");
-path.setAttribute("fill", "#FFD700");
+path.setAttribute("fill", "#ffffff");
 marker.appendChild(path);
 defs.appendChild(marker);
 svg.appendChild(defs);
@@ -72,7 +81,7 @@ function makeStartBlockDraggable(element) {
         startDrag(e, element);
     };
     
-    makeStartPortConnectable(element, port);
+    makePortConnectable(element, port);
 }
 
 function startDrag(e, element) {
@@ -84,12 +93,12 @@ function startDrag(e, element) {
     offsetY = e.clientY - rect.top;
 }
 
-function createDropdown(block, optionsList, isBlueBlock = false) {
-    if (isBlueBlock) {
+function createDropdown(block, optionsList, isOutputBlock = false) {
+    if (isOutputBlock) {
         const input = document.createElement('input');
         input.type = 'text';
         input.className = 'block-input';
-        input.placeholder = 'Enter text to print...';
+        input.placeholder = 'Введите текст...';
         input.onmousedown = (e) => e.stopPropagation();
         
         let textToPrint = '';
@@ -121,18 +130,9 @@ function createDropdown(block, optionsList, isBlueBlock = false) {
         };
     } else {
         const select = document.createElement('select');
-        select.style.width = '100%';
-        select.style.height = '100%';
-        select.style.background = 'transparent';
-        select.style.border = 'none';
-        select.style.color = 'inherit';
-        select.style.fontWeight = 'bold';
-        select.style.fontSize = '12px';
-        select.style.textAlign = 'center';
-        select.style.cursor = 'pointer';
         
         const placeholder = document.createElement('option');
-        placeholder.textContent = "Choose action...";
+        placeholder.textContent = "Выбрать...";
         placeholder.disabled = true;
         placeholder.selected = true;
         select.appendChild(placeholder);
@@ -172,19 +172,302 @@ function createDropdown(block, optionsList, isBlueBlock = false) {
     }
 }
 
-function initSpawner(spawnerId, colorClass, blockOptions, isBlueBlock = false) {
+function createVarBlock(block){
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'var-name-input';
+    nameInput.placeholder = 'имя';
+    nameInput.onmousedown = (e) => e.stopPropagation();
+    nameInput.onkeydown = (e) => e.stopPropagation();
+
+    const eq = document.createElement('span');
+    eq.className = 'var-eq-label';
+    eq.textContent = '=';
+
+    const valInput = document.createElement('input');
+    valInput.type = 'text';
+    valInput.className = 'var-val-input';
+    valInput.placeholder = 'значение';
+    valInput.onmousedown = (e) => e.stopPropagation();
+    valInput.onkeydown = (e) => e.stopPropagation();
+
+    const port = document.createElement("div");
+    port.classList.add("port");
+    makePortConnectable(block, port);
+    block.innerHTML = '';
+    block.classList.add('var-input-mode');
+    block.appendChild(nameInput);
+    block.appendChild(eq);
+    block.appendChild(valInput);
+    block.appendChild(port);
+    block.dataset.blockType = 'var';
+}
+
+function createOpBlock(block) {
+    const aInput = document.createElement('input');
+    aInput.type = 'text';
+    aInput.className = 'op-a-input';
+    aInput.placeholder = 'A';
+    aInput.onmousedown = (e) => e.stopPropagation();
+    aInput.onkeydown = (e) => e.stopPropagation();
+
+    const select = document.createElement('select');
+    select.className = 'op-select';
+    operators.forEach(op => {
+        const opt = document.createElement('option');
+        opt.value = op;
+        opt.textContent = op;
+        select.appendChild(opt);
+    });
+    select.onmousedown = (e) => e.stopPropagation();
+
+    const bInput = document.createElement('input');
+    bInput.type = 'text';
+    bInput.className = 'op-b-input';
+    bInput.placeholder = 'B';
+    bInput.onmousedown = (e) => e.stopPropagation();
+    bInput.onkeydown = (e) => e.stopPropagation();
+
+    const arrow = document.createElement('span');
+    arrow.className = 'op-arrow-label';
+    arrow.textContent = '->';
+
+    const resInput = document.createElement('input');
+    resInput.type = 'text';
+    resInput.className = 'op-res-input';
+    resInput.placeholder = 'итог';
+    resInput.onmousedown = (e) => e.stopPropagation();
+    resInput.onkeydown = (e) => e.stopPropagation();
+
+    const port = document.createElement("div");
+    port.classList.add("port");
+    makePortConnectable(block, port);
+    block.innerHTML = '';
+    block.classList.add('op-input-mode');
+    block.appendChild(aInput);
+    block.appendChild(select);
+    block.appendChild(bInput);
+    block.appendChild(arrow);
+    block.appendChild(resInput);
+    block.appendChild(port);
+    block.dataset.blockType = 'op';
+}
+
+function createDeclareBlock(block) {
+    const label = document.createElement('span');
+    label.className = 'declare-label';
+    label.textContent = 'int';
+
+    const namesInput = document.createElement('input');
+    namesInput.type = 'text';
+    namesInput.className = 'declare-names-input';
+    namesInput.placeholder = 'x,y = 1,2';
+    namesInput.onmousedown = (e) => e.stopPropagation();
+    namesInput.onkeydown = (e) => e.stopPropagation();
+
+    const port = document.createElement("div");
+    port.classList.add("port");
+    makePortConnectable(block, port);
+    block.innerHTML = '';
+    block.classList.add('declare-input-mode');
+    block.appendChild(label);
+    block.appendChild(namesInput);
+    block.appendChild(port);
+    block.dataset.blockType = 'declare';
+}
+
+function createAssignBlock(block) {
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'assign-name-input';
+    nameInput.placeholder = 'имя';
+    nameInput.onmousedown = (e) => e.stopPropagation();
+    nameInput.onkeydown = (e) => e.stopPropagation();
+
+    const eq = document.createElement('span');
+    eq.className = 'var-eq-label';
+    eq.textContent = '=';
+
+    const exprInput = document.createElement('input');
+    exprInput.type = 'text';
+    exprInput.className = 'assign-expr-input';
+    exprInput.placeholder = 'выражение';
+    exprInput.onmousedown = (e) => e.stopPropagation();
+    exprInput.onkeydown = (e) => e.stopPropagation();
+
+    const port = document.createElement("div");
+    port.classList.add("port");
+    makePortConnectable(block, port);
+    block.innerHTML = '';
+    block.classList.add('assign-input-mode');
+    block.appendChild(nameInput);
+    block.appendChild(eq);
+    block.appendChild(exprInput);
+    block.appendChild(port);
+    block.dataset.blockType = 'assign';
+}
+
+function createIfBlock(block) {
+    const ifLabel = document.createElement('span');
+    ifLabel.className = 'if-label';
+    ifLabel.textContent = 'if';
+
+    const leftInput = document.createElement('input');
+    leftInput.type = 'text';
+    leftInput.className = 'if-left-input';
+    leftInput.placeholder = 'A';
+    leftInput.onmousedown = (e) => e.stopPropagation();
+    leftInput.onkeydown = (e) => e.stopPropagation();
+
+    const cmpSelect = document.createElement('select');
+    cmpSelect.className = 'if-cmp-select';
+    comparators.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        cmpSelect.appendChild(opt);
+    });
+
+    cmpSelect.onmousedown = (e) => e.stopPropagation();
+    const rightInput = document.createElement('input');
+    rightInput.type = 'text';
+    rightInput.className = 'if-right-input';
+    rightInput.placeholder = 'B';
+    rightInput.onmousedown = (e) => e.stopPropagation();
+    rightInput.onkeydown = (e) => e.stopPropagation();
+    const portTrue = document.createElement("div");
+    portTrue.classList.add("port", "port-true");
+    portTrue.title = 'true';
+    makePortConnectable(block, portTrue);
+    const portFalse = document.createElement("div");
+    portFalse.classList.add("port", "port-false");
+    portFalse.title = 'false';
+    makePortConnectable(block, portFalse);
+    block.innerHTML = '';
+    block.classList.add('if-input-mode');
+    block.appendChild(ifLabel);
+    block.appendChild(leftInput);
+    block.appendChild(cmpSelect);
+    block.appendChild(rightInput);
+    block.appendChild(portTrue);
+    block.appendChild(portFalse);
+    block.dataset.blockType = 'if';
+}
+
+function initSpawner(spawnerId, colorClass, blockOptions, isOutputBlock = false) {
     const spawner = document.getElementById(spawnerId);
     spawner.onmousedown = (e) => {
         e.preventDefault(); 
+
         const newBlock = document.createElement('div');
         newBlock.classList.add('block', colorClass);
-        createDropdown(newBlock, blockOptions, isBlueBlock);
-        const rect = spawner.getBoundingClientRect();
+        createDropdown(newBlock, blockOptions, isOutputBlock);
         newBlock.style.position = 'absolute';
-        newBlock.style.left = rect.left + 'px';
-        newBlock.style.top = rect.top + 'px';
+        newBlock.style.left = (e.clientX - 60) + 'px';
+        newBlock.style.top = (e.clientY - 30) + 'px';
         document.body.appendChild(newBlock);
         newBlock.onmousedown = (ev) => {
+            if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
+            ev.stopPropagation();
+            startDrag(ev, newBlock);
+        };
+        startDrag(e, newBlock);
+    };
+}
+
+function initVarSpawner(spawnerId) {
+    const spawner = document.getElementById(spawnerId);
+    spawner.onmousedown = (e) => {
+        e.preventDefault();
+        const newBlock = document.createElement('div');
+        newBlock.classList.add('block', 'variable');
+        createVarBlock(newBlock);
+        newBlock.style.position = 'absolute';
+        newBlock.style.left = (e.clientX - 60) + 'px';
+        newBlock.style.top = (e.clientY - 30) + 'px';
+        document.body.appendChild(newBlock);
+        newBlock.onmousedown = (ev) => {
+            if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
+            ev.stopPropagation();
+            startDrag(ev, newBlock);
+        };
+        startDrag(e, newBlock);
+    };
+}
+
+function initOpSpawner(spawnerId) {
+    const spawner = document.getElementById(spawnerId);
+    spawner.onmousedown = (e) => {
+        e.preventDefault();
+        const newBlock = document.createElement('div');
+        newBlock.classList.add('block', 'operation');
+        createOpBlock(newBlock);
+        newBlock.style.position = 'absolute';
+        newBlock.style.left = (e.clientX - 75) + 'px';
+        newBlock.style.top = (e.clientY - 30) + 'px';
+        document.body.appendChild(newBlock);
+        newBlock.onmousedown = (ev) => {
+            if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
+            ev.stopPropagation();
+            startDrag(ev, newBlock);
+        };
+        startDrag(e, newBlock);
+    };
+}
+
+function initDeclareSpawner(spawnerId) {
+    const spawner = document.getElementById(spawnerId);
+    spawner.onmousedown = (e) => {
+        e.preventDefault();
+        const newBlock = document.createElement('div');
+        newBlock.classList.add('block', 'declare');
+        createDeclareBlock(newBlock);
+        newBlock.style.position = 'absolute';
+        newBlock.style.left = (e.clientX - 60) + 'px';
+        newBlock.style.top = (e.clientY - 30) + 'px';
+        document.body.appendChild(newBlock);
+        newBlock.onmousedown = (ev) => {
+            if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
+            ev.stopPropagation();
+            startDrag(ev, newBlock);
+        };
+        startDrag(e, newBlock);
+    };
+}
+
+function initAssignSpawner(spawnerId) {
+    const spawner = document.getElementById(spawnerId);
+    spawner.onmousedown = (e) => {
+        e.preventDefault();
+        const newBlock = document.createElement('div');
+        newBlock.classList.add('block', 'assign');
+        createAssignBlock(newBlock);
+        newBlock.style.position = 'absolute';
+        newBlock.style.left = (e.clientX - 60) + 'px';
+        newBlock.style.top = (e.clientY - 30) + 'px';
+        document.body.appendChild(newBlock);
+        newBlock.onmousedown = (ev) => {
+            if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
+            ev.stopPropagation();
+            startDrag(ev, newBlock);
+        };
+        startDrag(e, newBlock);
+    };
+}
+
+function initIfSpawner(spawnerId) {
+    const spawner = document.getElementById(spawnerId);
+    spawner.onmousedown = (e) => {
+        e.preventDefault();
+        const newBlock = document.createElement('div');
+        newBlock.classList.add('block', 'ifblock');
+        createIfBlock(newBlock);
+        newBlock.style.position = 'absolute';
+        newBlock.style.left = (e.clientX - 75) + 'px';
+        newBlock.style.top = (e.clientY - 30) + 'px';
+        document.body.appendChild(newBlock);
+        newBlock.onmousedown = (ev) => {
+            if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
             ev.stopPropagation();
             startDrag(ev, newBlock);
         };
@@ -202,12 +485,7 @@ document.onmousemove = (e) => {
     const leftPanel = document.querySelector('.left-panel');
     const leftPanelRect = leftPanel.getBoundingClientRect();
     
-    if (x < leftPanelRect.right + 10) {
-        activeBlock.style.left = leftPanelRect.right + 10 + 'px';
-    } else {
-        activeBlock.style.left = x + 'px';
-    }
-    
+    activeBlock.style.left = x + 'px';
     activeBlock.style.top = y + 'px';
 
     const blockRect = activeBlock.getBoundingClientRect();
@@ -336,45 +614,36 @@ function makePortConnectable(block, port) {
     port.addEventListener("mousedown", e => {
         e.stopPropagation();
         e.preventDefault();
-        
         startBlock = block;
-        const startOutgoing = connections.some(conn => conn.from === startBlock);
-        if (startOutgoing) {
-            return;
+        if (block.dataset.blockType === 'if') {
+            const pClass = port.classList.contains('port-true') ? 'port-true' : 'port-false';
+            if (connections.some(conn => conn.from === block && conn.portClass === pClass)) return;
+        } else {
+            if (connections.some(conn => conn.from === startBlock)) return;
         }
-        
+        const dragPortClass = port.classList.contains('port-true') ? 'port-true'
+                            : port.classList.contains('port-false') ? 'port-false'
+                            : null;
         activeLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-        activeLine.setAttribute("stroke", "#FFD700");
+        activeLine.setAttribute("stroke", dragPortClass === 'port-true' ? "#4CAF50" : dragPortClass === 'port-false' ? "#ef5350" : "#ffffff");
         activeLine.setAttribute("stroke-width", "3");
         activeLine.setAttribute("fill", "none");
         activeLine.setAttribute("marker-end", "url(#arrow)");
         svg.appendChild(activeLine);
-
         function move(ev) {
             const r = startBlock.getBoundingClientRect();
-            const x1 = r.right;
-            const y1 = r.top + r.height / 2;
-            const x2 = ev.clientX;
-            const y2 = ev.clientY;
-            setPolylinePath(activeLine, x1, y1, x2, y2);
+            setPolylinePath(activeLine, r.right, r.top + r.height / 2, ev.clientX, ev.clientY);
         }
-
         function up(ev) {
             document.removeEventListener("mousemove", move);
             document.removeEventListener("mouseup", up);
-            
             const target = findBlockUnder(ev.clientX, ev.clientY);
-            
             if (target && target !== startBlock) {
                 const targetIncoming = connections.some(conn => conn.to === target);
-                const startOutgoing = connections.some(conn => conn.from === startBlock);
-                
+                const startOutgoing = block.dataset.blockType !== 'if' && connections.some(conn => conn.from === startBlock);
+
                 if (!targetIncoming && !startOutgoing && !wouldCreateCycle(startBlock, target)) {
-                    connections.push({
-                        from: startBlock,
-                        to: target,
-                        line: activeLine
-                    });
+                    connections.push({ from: startBlock, to: target, line: activeLine, portClass: dragPortClass });
                     updateConnections();
                 } else {
                     activeLine.remove();
@@ -382,71 +651,9 @@ function makePortConnectable(block, port) {
             } else {
                 activeLine.remove();
             }
-
             activeLine = null;
             startBlock = null;
         }
-
-        document.addEventListener("mousemove", move);
-        document.addEventListener("mouseup", up);
-    });
-}
-
-function makeStartPortConnectable(block, port) {
-    port.addEventListener("mousedown", e => {
-        e.stopPropagation();
-        e.preventDefault();
-        
-        startBlock = block;
-        const startOutgoing = connections.some(conn => conn.from === startBlock);
-        if (startOutgoing) {
-            return;
-        }
-        
-        activeLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-        activeLine.setAttribute("stroke", "#FFD700");
-        activeLine.setAttribute("stroke-width", "3");
-        activeLine.setAttribute("fill", "none");
-        activeLine.setAttribute("marker-end", "url(#arrow)");
-        svg.appendChild(activeLine);
-
-        function move(ev) {
-            const r = startBlock.getBoundingClientRect();
-            const x1 = r.right;
-            const y1 = r.top + r.height / 2;
-            const x2 = ev.clientX;
-            const y2 = ev.clientY;
-            setPolylinePath(activeLine, x1, y1, x2, y2);
-        }
-
-        function up(ev) {
-            document.removeEventListener("mousemove", move);
-            document.removeEventListener("mouseup", up);
-            
-            const target = findBlockUnder(ev.clientX, ev.clientY);
-            
-            if (target && target !== startBlock) {
-                const targetIncoming = connections.some(conn => conn.to === target);
-                const startOutgoing = connections.some(conn => conn.from === startBlock);
-                
-                if (!targetIncoming && !startOutgoing && !wouldCreateCycle(startBlock, target)) {
-                    connections.push({
-                        from: startBlock,
-                        to: target,
-                        line: activeLine
-                    });
-                    updateConnections();
-                } else {
-                    activeLine.remove();
-                }
-            } else {
-                activeLine.remove();
-            }
-
-            activeLine = null;
-            startBlock = null;
-        }
-
         document.addEventListener("mousemove", move);
         document.addEventListener("mouseup", up);
     });
@@ -492,80 +699,377 @@ function findBlockUnder(x, y) {
     return null;
 }
 
-async function executeBlueprint() {
+function resolveValue(raw) {
+    const trimmed = String(raw).trim();
+    if (trimmed in variables) {
+        const val = variables[trimmed];
+        if (Array.isArray(val)) return val;
+        return val;
+    }
+    if (trimmed !== '' && !isNaN(trimmed)) return Number(trimmed);
+    return trimmed;
+}
+
+function tokenize(expr) {
+    const tokens = [];
+    let i = 0;
+    while (i < expr.length) {
+        const ch = expr[i];
+        if (ch === ' ') { i++; continue; }
+        if (ch >= '0' && ch <= '9') {
+            let num = '';
+            while (i < expr.length && expr[i] >= '0' && expr[i] <= '9') num += expr[i++];
+            tokens.push({ type: 'num', value: Number(num) });
+            continue;
+        }
+        if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch === '_') {
+            let name = '';
+            while (i < expr.length && (/[a-zA-Z0-9_]/.test(expr[i]))) name += expr[i++];
+            if (!(name in variables)) throw new Error(`Переменная "${name}" не объявлена`);
+            tokens.push({ type: 'num', value: Number(variables[name]) });
+            continue;
+        }
+        if ('()+-*/%'.includes(ch)) {
+            tokens.push({ type: ch === '(' || ch === ')' ? 'paren' : 'op', value: ch });
+            i++;
+            continue;
+        }
+        throw new Error(`Неизвестный символ: "${ch}"`);
+    }
+    return tokens;
+}
+
+function parseExpr(tokens, pos) {
+    let [left, p] = parseTerm(tokens, pos);
+    while (p < tokens.length && (tokens[p].value === '+' || tokens[p].value === '-')) {
+        const op = tokens[p].value;
+        let right; [right, p] = parseTerm(tokens, p + 1);
+        left = op === '+' ? left + right : left - right;
+    }
+    return [left, p];
+}
+
+function parseTerm(tokens, pos) {
+    let [left, p] = parseFactor(tokens, pos);
+    while (p < tokens.length && (tokens[p].value === '*' || tokens[p].value === '/' || tokens[p].value === '%')) {
+        const op = tokens[p].value;
+        let right; [right, p] = parseFactor(tokens, p + 1);
+        if (op === '*') left = left * right;
+        else if (op === '/') { if (right === 0) throw new Error('Деление на 0'); left = Math.trunc(left / right); }
+        else left = left % right;
+    }
+    return [left, p];
+}
+
+function parseFactor(tokens, pos) {
+    if (pos >= tokens.length) throw new Error('Неожиданный конец выражения');
+    const tok = tokens[pos];
+    if (tok.type === 'op' && tok.value === '-') {
+        const [val, p] = parseFactor(tokens, pos + 1);
+        return [-val, p];
+    }
+    if (tok.type === 'paren' && tok.value === '(') {
+        const [val, p] = parseExpr(tokens, pos + 1);
+        if (p >= tokens.length || tokens[p].value !== ')') throw new Error('Ожидалась )');
+        return [val, p + 1];
+    }
+    if (tok.type === 'num') return [tok.value, pos + 1];
+    throw new Error(`Неожиданный токен: "${tok.value}"`);
+}
+
+function evalExpr(exprStr) {
+    const tokens = tokenize(exprStr.trim());
+    if (tokens.length === 0) throw new Error('Пустое выражение');
+    const [result, pos] = parseExpr(tokens, 0);
+    if (pos !== tokens.length) throw new Error('Лишние символы в выражении');
+    return result;
+}
+
+function evalCondition(leftStr, cmp, rightStr) {
+    const a = evalExpr(leftStr);
+    const b = evalExpr(rightStr);
+    if (cmp === '>')  return a > b;
+    if (cmp === '<')  return a < b;
+    if (cmp === '=')  return a === b;
+    if (cmp === '!=') return a !== b;
+    if (cmp === '>=') return a >= b;
+    if (cmp === '<=') return a <= b;
+    return false;
+}
+
+function markBlockError(block) {
+    block.classList.add('block-error');
+    setTimeout(() => block.classList.remove('block-error'), 2000);
+}
+
+function getNextBlock(fromBlock, portClass) {
+    for (let conn of connections) {
+        if (conn.from !== fromBlock) continue;
+        if (portClass === null && !conn.portClass) return conn.to;
+        if (portClass !== null && conn.portClass === portClass) return conn.to;
+    }
+    return null;
+}
+
+async function executeOutputPrint() {
     if (executionInProgress) return;
-    
     executionInProgress = true;
+    variables = {};
     const runButton = document.getElementById('runButton');
     runButton.classList.add('running');
-    
-    const startBlock = document.getElementById('startBlock');
-    
+    const startBlockEl = document.getElementById('startBlock');
     let currentBlock = null;
     for (let conn of connections) {
-        if (conn.from === startBlock) {
-            currentBlock = conn.to;
-            break;
-        }
+        if (conn.from === startBlockEl) { currentBlock = conn.to; break; }
     }
-    
     if (!currentBlock) {
         executionInProgress = false;
         runButton.classList.remove('running');
         return;
     }
-    
     await new Promise(resolve => setTimeout(resolve, 500));
-    
-    let stepCount = 1;
+    let stepCount = 0;
     let hasPrintedAnything = false;
-    
     while (currentBlock) {
-        const printed = await executeBlock(currentBlock, stepCount++);
-        if (printed) hasPrintedAnything = true;
-        
-        let nextBlock = null;
-        for (let conn of connections) {
-            if (conn.from === currentBlock) {
-                nextBlock = conn.to;
-                break;
-            }
+        let result;
+        try {
+            result = await executeBlock(currentBlock, stepCount++);
+        } catch (err) {
+            addConsoleMessage('ОШИБКА: ' + err.message, 'error');
+            break;
         }
-        currentBlock = nextBlock;
-        
-        if (currentBlock) {
-            await new Promise(resolve => setTimeout(resolve, 400));
-        }
+        if (result.printed) hasPrintedAnything = true;
+        currentBlock = result.nextBlock;
+        if (currentBlock) await new Promise(resolve => setTimeout(resolve, 0));
     }
-    
-    if (hasPrintedAnything) {
-        addConsoleMessage('PROGRAM COMPLETED', 'complete');
-    }
-    
+    if (hasPrintedAnything) addConsoleMessage('Программа завершена', 'complete');
     executionInProgress = false;
     runButton.classList.remove('running');
 }
 
 function executeBlock(block, stepNumber) {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
         block.classList.add('executing');
-        
-        const input = block.querySelector('.block-input');
-        let printed = false;
-        
-        if (input) {
-            const textToPrint = input.value || '(empty)';
-            if (textToPrint !== '(empty)' || input.value) {
-                addConsoleMessage(textToPrint, 'print');
-                printed = true;
+        setTimeout(() => block.classList.remove('executing'), 300);
+        try {
+            if (block.dataset.blockType === 'declare') {
+                const namesInput = block.querySelector('.declare-names-input');
+                const raw = namesInput ? namesInput.value : '';
+                const parts = raw.split('=');
+                const names = parts[0].split(',').map(s => s.trim()).filter(s => s.length > 0);
+                const valueStrs = parts[1] ? parts[1].split(',').map(s => s.trim()) : [];
+                if (names.length === 0) { markBlockError(block); throw new Error('Не указаны имена переменных'); }
+                names.forEach((name, i) => {
+                    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) { markBlockError(block); throw new Error(`Недопустимое имя: "${name}"`); }
+                    let val = 0;
+                    if (valueStrs[i] !== undefined && valueStrs[i] !== '') {
+                        try { val = evalExpr(valueStrs[i]); } catch { val = 0; }
+                    }
+                    variables[name] = val;
+                });
+                const display = names.map((n) => `${n}=${variables[n]}`).join(', ');
+                addConsoleMessage(`int ${display}`, 'print');
+                resolve({ printed: true, nextBlock: getNextBlock(block, null) });
+                return;
             }
+            if (block.dataset.blockType === 'assign') {
+                const nameInput = block.querySelector('.assign-name-input');
+                const exprInput = block.querySelector('.assign-expr-input');
+                const name = nameInput ? nameInput.value.trim() : '';
+                const exprStr = exprInput ? exprInput.value.trim() : '';
+                if (!name) { markBlockError(block); throw new Error('Не указано имя переменной'); }
+                if (!(name in variables)) { markBlockError(block); throw new Error(`Переменная "${name}" не объявлена`); }
+                const result = evalExpr(exprStr);
+                variables[name] = result;
+                addConsoleMessage(`${name} = ${result}`, 'print');
+                resolve({ printed: true, nextBlock: getNextBlock(block, null) });
+                return;
+            }
+            if (block.dataset.blockType === 'if') {
+                const leftInput  = block.querySelector('.if-left-input');
+                const cmpSelect  = block.querySelector('.if-cmp-select');
+                const rightInput = block.querySelector('.if-right-input');
+                const leftStr  = leftInput  ? leftInput.value.trim()  : '0';
+                const cmp      = cmpSelect  ? cmpSelect.value         : '=';
+                const rightStr = rightInput ? rightInput.value.trim() : '0';
+                const condition = evalCondition(leftStr, cmp, rightStr);
+                addConsoleMessage(`if (${leftStr} ${cmp} ${rightStr}) → ${condition ? 'true' : 'false'}`, 'print');
+                resolve({ printed: true, nextBlock: condition ? getNextBlock(block, 'port-true') : getNextBlock(block, 'port-false') });
+                return;
+            }
+            if (block.dataset.blockType === 'array') {
+                const nameInput = block.querySelector('.array-name-input');
+                const sizeInput = block.querySelector('.array-size-input');
+                const elementsInput = block.querySelector('.array-elements-input');
+                const name = nameInput ? nameInput.value.trim() : '';
+                const size = sizeInput ? sizeInput.value.trim() : '';
+                const elementsStr = elementsInput ? elementsInput.value.trim() : '';
+                if (!name) { 
+                    markBlockError(block); 
+                    throw new Error('Не указано имя массива'); 
+                }
+                const elements = elementsStr ? 
+                    elementsStr.split(',').map(e => e.trim()).filter(e => e !== '') : 
+                    [];
+                let expectedSize = null;
+                if (size) {
+                    try {
+                        expectedSize = evalExpr(size);
+                        if (typeof expectedSize !== 'number' || expectedSize <= 0) {
+                            throw new Error('Размер должен быть положительным числом');
+                        }
+                    } catch {
+                        markBlockError(block);
+                        throw new Error('Некорректный размер массива');
+                    }
+                }
+                const array = [];
+                if (elements.length > 0) {
+                    elements.forEach((element, index) => {
+                        try {
+                            array[index] = evalExpr(element);
+                        } catch {
+                            array[index] = resolveValue(element);
+                        }
+                    });
+                }
+                if (expectedSize !== null && array.length !== expectedSize) {
+                    markBlockError(block);
+                    throw new Error(`Размер массива (${array.length}) не соответствует заданному (${expectedSize})`);
+                }
+                variables[name] = array;
+                const arrayStr = array.map(v => 
+                    typeof v === 'string' ? `"${v}"` : v
+                ).join(', ');
+                addConsoleMessage(`${name} = [${arrayStr}]`, 'print');
+                resolve({ printed: true, nextBlock: getNextBlock(block, null) });
+                return;
+            }
+            if (block.dataset.blockType === 'var') {
+                const nameInput = block.querySelector('.var-name-input');
+                const valInput  = block.querySelector('.var-val-input');
+                const name   = nameInput ? nameInput.value.trim() : '';
+                const rawVal = valInput  ? valInput.value.trim()  : '';
+                if (name) {
+                    let resolved;
+                    try { resolved = evalExpr(rawVal); } catch { resolved = resolveValue(rawVal); }
+                    variables[name] = resolved;
+                    addConsoleMessage(`${name} = ${resolved}`, 'print');
+                }
+                resolve({ printed: !!name, nextBlock: getNextBlock(block, null) });
+                return;
+            }
+            if (block.dataset.blockType === 'op') {
+                const aInput   = block.querySelector('.op-a-input');
+                const sel      = block.querySelector('.op-select');
+                const bInput   = block.querySelector('.op-b-input');
+                const resInput = block.querySelector('.op-res-input');
+                const a  = resolveValue(aInput  ? aInput.value  : '0');
+                const op = sel ? sel.value : '+';
+                const b  = resolveValue(bInput  ? bInput.value  : '0');
+                const resName = resInput ? resInput.value.trim() : '';
+                const aNum = Number(a);
+                const bNum = Number(b);
+                let result;
+                if      (op === '+') result = aNum + bNum;
+                else if (op === '-') result = aNum - bNum;
+                else if (op === '*') result = aNum * bNum;
+                else if (op === '/') result = bNum !== 0 ? aNum / bNum : 'ошибка: деление на 0';
+                else if (op === '%') result = bNum !== 0 ? aNum % bNum : 'ошибка: деление на 0';
+                else result = 0;
+                if (resName) {
+                    variables[resName] = result;
+                    addConsoleMessage(`${resName} = ${a} ${op} ${b} = ${result}`, 'print');
+                } else {
+                    addConsoleMessage(`${a} ${op} ${b} = ${result}`, 'print');
+                }
+                resolve({ printed: true, nextBlock: getNextBlock(block, null) });
+                return;
+            }
+            const input = block.querySelector('.block-input');
+            if (input) {
+                const raw = input.value.trim() || '(пусто)';
+                const output = resolveValue(raw);
+                addConsoleMessage(String(output), 'print');
+                resolve({ printed: true, nextBlock: getNextBlock(block, null) });
+                return;
+            }
+            const select = block.querySelector('select');
+            if (select && select.value) {
+                addConsoleMessage(select.value, 'print');
+                resolve({ printed: true, nextBlock: getNextBlock(block, null) });
+                return;
+            }
+            resolve({ printed: false, nextBlock: getNextBlock(block, null) });
+        } catch(err) {
+            reject(err);
         }
-        
-        setTimeout(() => {
-            block.classList.remove('executing');
-            resolve(printed);
-        }, 600);
     });
+}
+
+function createArrayBlock(block) {
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'array-name-input';
+    nameInput.placeholder = 'имя';
+    nameInput.onmousedown = (e) => e.stopPropagation();
+    nameInput.onkeydown = (e) => e.stopPropagation();
+
+    const eq1 = document.createElement('span');
+    eq1.className = 'array-eq-label';
+    eq1.textContent = '[';
+
+    const sizeInput = document.createElement('input');
+    sizeInput.type = 'text';
+    sizeInput.className = 'array-size-input';
+    sizeInput.placeholder = 'размер';
+    sizeInput.onmousedown = (e) => e.stopPropagation();
+    sizeInput.onkeydown = (e) => e.stopPropagation();
+
+    const eq2 = document.createElement('span');
+    eq2.className = 'array-eq-label';
+    eq2.textContent = '] =';
+
+    const elementsInput = document.createElement('input');
+    elementsInput.type = 'text';
+    elementsInput.className = 'array-elements-input';
+    elementsInput.placeholder = 'эл-ты через запятую';
+    elementsInput.onmousedown = (e) => e.stopPropagation();
+    elementsInput.onkeydown = (e) => e.stopPropagation();
+
+    const port = document.createElement("div");
+    port.classList.add("port");
+    makePortConnectable(block, port);
+    
+    block.innerHTML = '';
+    block.classList.add('array-input-mode');
+    block.appendChild(nameInput);
+    block.appendChild(eq1);
+    block.appendChild(sizeInput);
+    block.appendChild(eq2);
+    block.appendChild(elementsInput);
+    block.appendChild(port);
+    block.dataset.blockType = 'array';
+}
+
+function initArraySpawner(spawnerId) {
+    const spawner = document.getElementById(spawnerId);
+    spawner.onmousedown = (e) => {
+        e.preventDefault();
+        const newBlock = document.createElement('div');
+        newBlock.classList.add('block', 'array');
+        createArrayBlock(newBlock);
+        newBlock.style.position = 'absolute';
+        newBlock.style.left = (e.clientX - 60) + 'px';
+        newBlock.style.top = (e.clientY - 30) + 'px';
+        document.body.appendChild(newBlock);
+        newBlock.onmousedown = (ev) => {
+            if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
+            ev.stopPropagation();
+            startDrag(ev, newBlock);
+        };
+        startDrag(e, newBlock);
+    };
 }
 
 function addConsoleMessage(message, type = 'print') {
@@ -576,7 +1080,7 @@ function addConsoleMessage(message, type = 'print') {
     consoleContent.scrollTop = consoleContent.scrollHeight;
 }
 
-document.getElementById('runButton').addEventListener('click', executeBlueprint);
+document.getElementById('runButton').addEventListener('click', executeOutputPrint);
 
 document.addEventListener('selectstart', (e) => {
     if (activeBlock) {

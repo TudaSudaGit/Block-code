@@ -3,12 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <title>Codeblock</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="panel left-panel">
-    <link rel="stylesheet" href="style.css">
-    <div class="block blue" id="spawnerBlue">Blue</div>
-    <div class="block purple" id="spawnerPurple">Purple</div>
+    <div class="block output" id="spawnerOutput">Вывод</div>
+    <div class="block variable" id="spawnerVar">Перем</div>
+    <div class="block operation" id="spawnerOp">Операция</div>
+    <div class="block declare" id="spawnerDeclare">int …</div>
+    <div class="block assign" id="spawnerAssign">x = …</div>
+    <div class="block ifblock" id="spawnerIf">if</div>
+    <div class="block array" id="spawnerArray">Массив</div>
     <div class="block green" id="spawnerGreen">Green</div>
     <div class="block orange" id="spawnerOrange">Orange</div>
     <div class="block cyan" id="spawnerCyan">Cyan</div>
@@ -24,7 +29,7 @@
 
 <div class="console-container" id="consoleContainer">
     <div class="console-header">
-        <span>OUTPUT CONSOLE</span>
+        <span>Консоль</span>
         <button class="console-clear" id="clearConsole">✕</button>
     </div>
     <div class="console-content" id="consoleContent"></div>
