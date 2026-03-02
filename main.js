@@ -24,10 +24,10 @@ initAssignSpawner('spawnerAssign');
 initIfSpawner('spawnerIf');
 initSpawner('spawnerOutput', 'output', firstFive, true);
 initArraySpawner('spawnerArray');
+initWhileSpawner('spawnerWhile');
 initSpawner('spawnerGreen', 'green', nextFive2);
 initSpawner('spawnerOrange', 'orange', nextFive3);
 initSpawner('spawnerCyan', 'cyan', nextFive4);
-initWhileSpawner('spawnerWhile');
 
 const consoleContent = document.getElementById('consoleContent');
 const clearConsoleBtn = document.getElementById('clearConsole');
@@ -615,7 +615,7 @@ function makePortConnectable(block, port) {
         e.stopPropagation();
         e.preventDefault();
         startBlock = block;
-        if (block.dataset.blockType === 'if') {
+        if (block.dataset.blockType === 'if' || block.dataset.blockType === 'while') {
             const pClass = port.classList.contains('port-true') ? 'port-true' : 'port-false';
             if (connections.some(conn => conn.from === block && conn.portClass === pClass)) return;
         } else {
@@ -640,13 +640,22 @@ function makePortConnectable(block, port) {
             const target = findBlockUnder(ev.clientX, ev.clientY);
             if (target && target !== startBlock) {
                 const targetIncoming = connections.some(conn => conn.to === target);
-                const startOutgoing = block.dataset.blockType !== 'if' && connections.some(conn => conn.from === startBlock);
-
-                if (!targetIncoming && !startOutgoing && !wouldCreateCycle(startBlock, target)) {
-                    connections.push({ from: startBlock, to: target, line: activeLine, portClass: dragPortClass });
-                    updateConnections();
+                const startOutgoing = (block.dataset.blockType !== 'if' && block.dataset.blockType !== 'while') 
+                    ? connections.some(conn => conn.from === startBlock) : false;
+                if (block.dataset.blockType === 'if' || block.dataset.blockType === 'while') {
+                    if (!targetIncoming && !wouldCreateCycle(startBlock, target)) {
+                        connections.push({ from: startBlock, to: target, line: activeLine, portClass: dragPortClass });
+                        updateConnections();
+                    } else {
+                        activeLine.remove();
+                    }
                 } else {
-                    activeLine.remove();
+                    if (!targetIncoming && !startOutgoing && !wouldCreateCycle(startBlock, target)) {
+                        connections.push({ from: startBlock, to: target, line: activeLine, portClass: dragPortClass });
+                        updateConnections();
+                    } else {
+                        activeLine.remove();
+                    }
                 }
             } else {
                 activeLine.remove();
@@ -959,18 +968,14 @@ function executeBlock(block, stepNumber) {
                 const condition = evalCondition(leftStr, cmp, rightStr);
                 addConsoleMessage(`while (${leftStr} ${cmp} ${rightStr}) → ${condition ? 'true' : 'false'}`, 'print');
                 let nextBlock = null;
-                let shouldLoop = false;
                 if (condition) {
                     nextBlock = getNextBlock(block, 'port-while-true');
-                    shouldLoop = true;
                 } else {
                     nextBlock = getNextBlock(block, 'port-while-false');
-                    shouldLoop = false;
                 }
                 resolve({ 
                     printed: true, 
                     nextBlock: nextBlock,
-                    shouldLoop: shouldLoop
                 });
                 return;
             }
@@ -1187,10 +1192,10 @@ function createWhileBlock(block) {
     rightInput.onmousedown = (e) => e.stopPropagation();
     rightInput.onkeydown = (e) => e.stopPropagation();
     const portTrue = document.createElement("div");
-    portTrue.classList.add("port", "port-while-true");
+    portTrue.classList.add("port", "port-true");
     portTrue.title = 'true (выполнить тело цикла)';
     const portFalse = document.createElement("div");
-    portFalse.classList.add("port", "port-while-false");
+    portFalse.classList.add("port", "port-false");
     portFalse.title = 'false (выход из цикла)';
     makePortConnectable(block, portTrue);
     makePortConnectable(block, portFalse);
@@ -1201,7 +1206,8 @@ function createWhileBlock(block) {
     block.appendChild(cmpSelect);
     block.appendChild(rightInput);
     block.appendChild(portTrue);
-    block.appendChild(portFalse);;
+    block.appendChild(portFalse);
+    block.dataset.blockType = 'while';
 }
 
 async function executeOutputPrint() {

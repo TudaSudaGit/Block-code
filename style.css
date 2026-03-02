@@ -547,7 +547,8 @@ svg {
 .left-panel .block.while {
     width: 120px;
     height: 60px;
-    font-size: 11px;
+    font-size: 14px;
+    font-weight: bold;
 }
 
 .block.declare.declare-input-mode {
@@ -821,16 +822,4 @@ svg {
     width: 45px;
     cursor: pointer;
     padding: 2px;
-}
-
-.port-while-true {
-    top: 30% !important;
-    background: #4CAF50 !important;
-    right: -5px;
-}
-
-.port-while-false {
-    top: 70% !important;
-    background: #ef5350 !important;
-    right: -5px;
 }
