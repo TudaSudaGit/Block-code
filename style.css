@@ -555,6 +555,8 @@ svg {
     padding: 0 18px 0 4px;
     gap: 4px;
     overflow: hidden;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
 }
 
 .declare-label {
@@ -822,4 +824,62 @@ svg {
     width: 45px;
     cursor: pointer;
     padding: 2px;
+}
+
+.block.end-if {
+    border: 5px solid #FFB74D;
+    background-color: #e65c00;
+    color: #fff;
+    width: 160px;
+    height: 50px;
+    font-size: 13px;
+    font-style: italic;
+}
+
+.block.end-while {
+    border: 5px solid #FFF176;
+    background-color: #b8a000;
+    color: #fff;
+    width: 160px;
+    height: 50px;
+    font-size: 13px;
+    font-style: italic;
+}
+
+.left-panel .block.end-if,
+.left-panel .block.end-while {
+    width: 120px;
+    height: 50px;
+}
+
+.declare-type-select {
+    background: rgba(0,0,0,0.15);
+    border: 1px solid rgba(0,0,0,0.2);
+    border-radius: 4px;
+    color: #000;
+    font-size: 11px;
+    font-weight: bold;
+    text-align: center;
+    outline: none;
+    width: 48px;
+    min-width: 48px;
+    max-width: 48px;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.declare-names-input {
+    flex: 1;
+    min-width: 0;
+    width: 0;
+    background: rgba(0,0,0,0.15);
+    border: 1px solid rgba(0,0,0,0.2);
+    border-radius: 4px;
+    color: #000;
+    font-size: 11px;
+    font-weight: bold;
+    text-align: center;
+    outline: none;
+    padding: 2px 3px;
 }

@@ -6,6 +6,7 @@ let activeLine = null;
 let startBlock = null;
 let executionInProgress = false;
 let variables = {};
+let varTypes = {};
 
 const operators = ["+", "-", "*", "/", "%"];
 const comparators = [">", "<", "=", "!=", ">=", "<="];
@@ -25,6 +26,8 @@ initIfSpawner('spawnerIf');
 initSpawner('spawnerOutput', 'output', firstFive, true);
 initArraySpawner('spawnerArray');
 initWhileSpawner('spawnerWhile');
+initEndIfSpawner('spawnerEndIf');
+initEndWhileSpawner('spawnerEndWhile');
 initSpawner('spawnerGreen', 'green', nextFive2);
 initSpawner('spawnerOrange', 'orange', nextFive3);
 initSpawner('spawnerCyan', 'cyan', nextFive4);
@@ -254,9 +257,16 @@ function createOpBlock(block) {
 }
 
 function createDeclareBlock(block) {
-    const label = document.createElement('span');
-    label.className = 'declare-label';
-    label.textContent = 'int';
+    const typeSelect = document.createElement('select');
+    typeSelect.className = 'declare-type-select';
+    ['int', 'float', 'double'].forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = t;
+        typeSelect.appendChild(opt);
+    });
+    typeSelect.onmousedown = (e) => e.stopPropagation();
+    typeSelect.onkeydown = (e) => e.stopPropagation();
 
     const namesInput = document.createElement('input');
     namesInput.type = 'text';
@@ -270,7 +280,7 @@ function createDeclareBlock(block) {
     makePortConnectable(block, port);
     block.innerHTML = '';
     block.classList.add('declare-input-mode');
-    block.appendChild(label);
+    block.appendChild(typeSelect);
     block.appendChild(namesInput);
     block.appendChild(port);
     block.dataset.blockType = 'declare';
@@ -482,9 +492,6 @@ document.onmousemove = (e) => {
     const x = e.clientX - offsetX;
     const y = e.clientY - offsetY;
 
-    const leftPanel = document.querySelector('.left-panel');
-    const leftPanelRect = leftPanel.getBoundingClientRect();
-    
     activeBlock.style.left = x + 'px';
     activeBlock.style.top = y + 'px';
 
@@ -639,18 +646,22 @@ function makePortConnectable(block, port) {
             document.removeEventListener("mouseup", up);
             const target = findBlockUnder(ev.clientX, ev.clientY);
             if (target && target !== startBlock) {
-                const targetIncoming = connections.some(conn => conn.to === target);
-                const startOutgoing = (block.dataset.blockType !== 'if' && block.dataset.blockType !== 'while') 
+                const multiIn = target.dataset.blockType === 'end-if';
+                const targetIncoming = !multiIn && connections.some(conn => conn.to === target);
+                const startOutgoing = (block.dataset.blockType !== 'if' && block.dataset.blockType !== 'while')
                     ? connections.some(conn => conn.from === startBlock) : false;
+                const isBackEdge = startBlock.dataset.blockType === 'end-while' && target.dataset.blockType === 'while';
+                const cycle = !isBackEdge && wouldCreateCycle(startBlock, target);
+
                 if (block.dataset.blockType === 'if' || block.dataset.blockType === 'while') {
-                    if (!targetIncoming && !wouldCreateCycle(startBlock, target)) {
+                    if (!targetIncoming && !cycle) {
                         connections.push({ from: startBlock, to: target, line: activeLine, portClass: dragPortClass });
                         updateConnections();
                     } else {
                         activeLine.remove();
                     }
                 } else {
-                    if (!targetIncoming && !startOutgoing && !wouldCreateCycle(startBlock, target)) {
+                    if (!targetIncoming && !startOutgoing && !cycle) {
                         connections.push({ from: startBlock, to: target, line: activeLine, portClass: dragPortClass });
                         updateConnections();
                     } else {
@@ -666,19 +677,6 @@ function makePortConnectable(block, port) {
         document.addEventListener("mousemove", move);
         document.addEventListener("mouseup", up);
     });
-}
-
-function getBlockText(block) {
-    if (block.id === 'startBlock') return 'START';
-    
-    const input = block.querySelector('.block-input');
-    if (input) {
-        return input.value || 'Print (empty)';
-    }
-    
-    const select = block.querySelector('select');
-    if (select && select.value) return select.value;
-    return block.textContent.trim() || 'Block';
 }
 
 function updateConnections() {
@@ -727,7 +725,11 @@ function tokenize(expr) {
         if (ch === ' ') { i++; continue; }
         if (ch >= '0' && ch <= '9') {
             let num = '';
-            while (i < expr.length && expr[i] >= '0' && expr[i] <= '9') num += expr[i++];
+            while (i < expr.length && (expr[i] >= '0' && expr[i] <= '9')) num += expr[i++];
+            if (i < expr.length && expr[i] === '.') {
+                num += expr[i++];
+                while (i < expr.length && expr[i] >= '0' && expr[i] <= '9') num += expr[i++];
+            }
             tokens.push({ type: 'num', value: Number(num) });
             continue;
         }
@@ -785,7 +787,7 @@ function parseTerm(tokens, pos) {
         const op = tokens[p].value;
         let right; [right, p] = parseFactor(tokens, p + 1);
         if (op === '*') left = left * right;
-        else if (op === '/') { if (right === 0) throw new Error('Деление на 0'); left = Math.trunc(left / right); }
+        else if (op === '/') { if (right === 0) throw new Error('Деление на 0'); left = left / right; }
         else left = left % right;
     }
     return [left, p];
@@ -858,49 +860,15 @@ function getNextBlock(fromBlock, portClass) {
     return null;
 }
 
-async function executeOutputPrint() {
-    if (executionInProgress) return;
-    executionInProgress = true;
-    variables = {};
-    const runButton = document.getElementById('runButton');
-    runButton.classList.add('running');
-    const startBlockEl = document.getElementById('startBlock');
-    let currentBlock = null;
-    for (let conn of connections) {
-        if (conn.from === startBlockEl) { currentBlock = conn.to; break; }
-    }
-    if (!currentBlock) {
-        executionInProgress = false;
-        runButton.classList.remove('running');
-        return;
-    }
-    await new Promise(resolve => setTimeout(resolve, 500));
-    let stepCount = 0;
-    let hasPrintedAnything = false;
-    while (currentBlock) {
-        let result;
-        try {
-            result = await executeBlock(currentBlock, stepCount++);
-        } catch (err) {
-            addConsoleMessage('ОШИБКА: ' + err.message, 'error');
-            break;
-        }
-        if (result.printed) hasPrintedAnything = true;
-        currentBlock = result.nextBlock;
-        if (currentBlock) await new Promise(resolve => setTimeout(resolve, 0));
-    }
-    if (hasPrintedAnything) addConsoleMessage('Программа завершена', 'complete');
-    executionInProgress = false;
-    runButton.classList.remove('running');
-}
-
 function executeBlock(block, stepNumber) {
     return new Promise((resolve, reject) => {
         block.classList.add('executing');
         setTimeout(() => block.classList.remove('executing'), 300);
         try {
             if (block.dataset.blockType === 'declare') {
+                const typeSelect = block.querySelector('.declare-type-select');
                 const namesInput = block.querySelector('.declare-names-input');
+                const declType = typeSelect ? typeSelect.value : 'int';
                 const raw = namesInput ? namesInput.value : '';
                 const parts = raw.split('=');
                 const names = parts[0].split(',').map(s => s.trim()).filter(s => s.length > 0);
@@ -912,10 +880,12 @@ function executeBlock(block, stepNumber) {
                     if (valueStrs[i] !== undefined && valueStrs[i] !== '') {
                         try { val = evalExpr(valueStrs[i]); } catch { val = 0; }
                     }
+                    if (declType === 'int') val = Math.trunc(val);
                     variables[name] = val;
+                    varTypes[name] = declType;
                 });
                 const display = names.map((n) => `${n}=${variables[n]}`).join(', ');
-                addConsoleMessage(`int ${display}`, 'print');
+                addConsoleMessage(`${declType} ${display}`, 'print');
                 resolve({ printed: true, nextBlock: getNextBlock(block, null) });
                 return;
             }
@@ -923,7 +893,7 @@ function executeBlock(block, stepNumber) {
                 const nameInput = block.querySelector('.assign-name-input');
                 const exprInput = block.querySelector('.assign-expr-input');
                 const name = nameInput ? nameInput.value.trim() : '';
-                const arrayMatch = expr.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\[([^\]]+)\]\s*=\s*(.+)$/);
+                const arrayMatch = name.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\[([^\]]+)\]$/);
                 if (arrayMatch) {
                     const arrayName = arrayMatch[1];
                     const indexExpr = arrayMatch[2].trim();
@@ -951,7 +921,8 @@ function executeBlock(block, stepNumber) {
                     const exprStr = exprInput ? exprInput.value.trim() : '';
                     if (!name) { markBlockError(block); throw new Error('Не указано имя переменной'); }
                     if (!(name in variables)) { markBlockError(block); throw new Error(`Переменная "${name}" не объявлена`); }
-                    const result = evalExpr(exprStr);
+                    let result = evalExpr(exprStr);
+                    if (varTypes[name] === 'int') result = Math.trunc(result);
                     variables[name] = result;
                     addConsoleMessage(`${name} = ${result}`, 'print');
                     resolve({ printed: true, nextBlock: getNextBlock(block, null) });
@@ -969,9 +940,9 @@ function executeBlock(block, stepNumber) {
                 addConsoleMessage(`while (${leftStr} ${cmp} ${rightStr}) → ${condition ? 'true' : 'false'}`, 'print');
                 let nextBlock = null;
                 if (condition) {
-                    nextBlock = getNextBlock(block, 'port-while-true');
+                    nextBlock = getNextBlock(block, 'port-true');
                 } else {
-                    nextBlock = getNextBlock(block, 'port-while-false');
+                    nextBlock = getNextBlock(block, 'port-false');
                 }
                 resolve({ 
                     printed: true, 
@@ -989,6 +960,32 @@ function executeBlock(block, stepNumber) {
                 const condition = evalCondition(leftStr, cmp, rightStr);
                 addConsoleMessage(`if (${leftStr} ${cmp} ${rightStr}) → ${condition ? 'true' : 'false'}`, 'print');
                 resolve({ printed: true, nextBlock: condition ? getNextBlock(block, 'port-true') : getNextBlock(block, 'port-false') });
+                return;
+            }
+            if (block.dataset.blockType === 'end-if') {
+                resolve({ printed: false, nextBlock: getNextBlock(block, null) });
+                return;
+            }
+            if (block.dataset.blockType === 'end-while') {
+                function findWhileHeader(b, visited) {
+                    if (!visited) visited = new Set();
+                    if (visited.has(b)) return null;
+                    visited.add(b);
+                    for (const c of connections) {
+                        if (c.to === b) {
+                            if (c.from.dataset.blockType === 'while') return c.from;
+                            const found = findWhileHeader(c.from, visited);
+                            if (found) return found;
+                        }
+                    }
+                    return null;
+                }
+                const whileBlock = findWhileHeader(block);
+                if (!whileBlock) {
+                    markBlockError(block);
+                    throw new Error('end while не связан ни с одним блоком while');
+                }
+                resolve({ printed: false, nextBlock: whileBlock });
                 return;
             }
             if (block.dataset.blockType === 'array') {
@@ -1214,6 +1211,7 @@ async function executeOutputPrint() {
     if (executionInProgress) return;
     executionInProgress = true;
     variables = {};
+    varTypes = {};
     const runButton = document.getElementById('runButton');
     runButton.classList.add('running');
     const startBlockEl = document.getElementById('startBlock');
@@ -1230,7 +1228,7 @@ async function executeOutputPrint() {
     let stepCount = 0;
     let hasPrintedAnything = false;
     const loopDetector = new Map();
-    const MAX_ITERATIONS = 1000;
+    const MAX_ITERATIONS = 10000;
     while (currentBlock) {
         stepCount++;
         if (stepCount > MAX_ITERATIONS) {
@@ -1290,6 +1288,62 @@ function addConsoleMessage(message, type = 'print') {
     msgElement.textContent = message;
     consoleContent.appendChild(msgElement);
     consoleContent.scrollTop = consoleContent.scrollHeight;
+}
+
+function createEndIfBlock(block) {
+    block.innerHTML = '';
+    block.textContent = '} end if';
+    const port = document.createElement('div');
+    port.classList.add('port');
+    makePortConnectable(block, port);
+    block.appendChild(port);
+    block.dataset.blockType = 'end-if';
+}
+
+function createEndWhileBlock(block) {
+    block.innerHTML = '';
+    block.textContent = 'end while';
+    block.dataset.blockType = 'end-while';
+}
+
+function initEndIfSpawner(spawnerId) {
+    const spawner = document.getElementById(spawnerId);
+    spawner.onmousedown = (e) => {
+        e.preventDefault();
+        const newBlock = document.createElement('div');
+        newBlock.classList.add('block', 'end-if');
+        createEndIfBlock(newBlock);
+        newBlock.style.position = 'absolute';
+        newBlock.style.left = (e.clientX - 60) + 'px';
+        newBlock.style.top = (e.clientY - 25) + 'px';
+        document.body.appendChild(newBlock);
+        newBlock.onmousedown = (ev) => {
+            if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
+            ev.stopPropagation();
+            startDrag(ev, newBlock);
+        };
+        startDrag(e, newBlock);
+    };
+}
+
+function initEndWhileSpawner(spawnerId) {
+    const spawner = document.getElementById(spawnerId);
+    spawner.onmousedown = (e) => {
+        e.preventDefault();
+        const newBlock = document.createElement('div');
+        newBlock.classList.add('block', 'end-while');
+        createEndWhileBlock(newBlock);
+        newBlock.style.position = 'absolute';
+        newBlock.style.left = (e.clientX - 60) + 'px';
+        newBlock.style.top = (e.clientY - 25) + 'px';
+        document.body.appendChild(newBlock);
+        newBlock.onmousedown = (ev) => {
+            if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
+            ev.stopPropagation();
+            startDrag(ev, newBlock);
+        };
+        startDrag(e, newBlock);
+    };
 }
 
 document.getElementById('runButton').addEventListener('click', executeOutputPrint);
