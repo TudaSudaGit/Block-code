@@ -322,29 +322,13 @@ function createIfBlock(block) {
     ifLabel.className = 'if-label';
     ifLabel.textContent = 'if';
 
-    const leftInput = document.createElement('input');
-    leftInput.type = 'text';
-    leftInput.className = 'if-left-input';
-    leftInput.placeholder = 'A';
-    leftInput.onmousedown = (e) => e.stopPropagation();
-    leftInput.onkeydown = (e) => e.stopPropagation();
+    const condInput = document.createElement('input');
+    condInput.type = 'text';
+    condInput.className = 'if-cond-input';
+    condInput.placeholder = 'a > 0 AND b < 10';
+    condInput.onmousedown = (e) => e.stopPropagation();
+    condInput.onkeydown = (e) => e.stopPropagation();
 
-    const cmpSelect = document.createElement('select');
-    cmpSelect.className = 'if-cmp-select';
-    comparators.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c;
-        opt.textContent = c;
-        cmpSelect.appendChild(opt);
-    });
-
-    cmpSelect.onmousedown = (e) => e.stopPropagation();
-    const rightInput = document.createElement('input');
-    rightInput.type = 'text';
-    rightInput.className = 'if-right-input';
-    rightInput.placeholder = 'B';
-    rightInput.onmousedown = (e) => e.stopPropagation();
-    rightInput.onkeydown = (e) => e.stopPropagation();
     const portTrue = document.createElement("div");
     portTrue.classList.add("port", "port-true");
     portTrue.title = 'true';
@@ -356,9 +340,7 @@ function createIfBlock(block) {
     block.innerHTML = '';
     block.classList.add('if-input-mode');
     block.appendChild(ifLabel);
-    block.appendChild(leftInput);
-    block.appendChild(cmpSelect);
-    block.appendChild(rightInput);
+    block.appendChild(condInput);
     block.appendChild(portTrue);
     block.appendChild(portFalse);
     block.dataset.blockType = 'if';
@@ -648,10 +630,10 @@ function makePortConnectable(block, port) {
             if (target && target !== startBlock) {
                 const multiIn = target.dataset.blockType === 'end-if';
                 const targetIncoming = !multiIn && connections.some(conn => conn.to === target);
-                const startOutgoing = (block.dataset.blockType !== 'if' && block.dataset.blockType !== 'while' || block.dataset.blockType !== 'for')
+                const startOutgoing = (block.dataset.blockType !== 'if' && block.dataset.blockType !== 'while' && block.dataset.blockType !== 'for')
                     ? connections.some(conn => conn.from === startBlock) : false;
-                const isBackEdge = startBlock.dataset.blockType === 'end-while' && target.dataset.blockType === 'while' 
-                                || startBlock.dataset.blockType === 'end-while' && block.dataset.blockType === 'for';
+                const isBackEdge = startBlock.dataset.blockType === 'end-while' &&
+                                (target.dataset.blockType === 'while' || target.dataset.blockType === 'for');
                 const cycle = !isBackEdge && wouldCreateCycle(startBlock, target);
 
                 if (block.dataset.blockType === 'if' || block.dataset.blockType === 'while' || block.dataset.blockType === 'for') {
@@ -662,7 +644,7 @@ function makePortConnectable(block, port) {
                         activeLine.remove();
                     }
                 } else {
-                    if (!targetIncoming && !startOutgoing && !cycle) {
+                    if ((isBackEdge || (!targetIncoming && !startOutgoing && !cycle))) {
                         connections.push({ from: startBlock, to: target, line: activeLine, portClass: dragPortClass });
                         updateConnections();
                     } else {
@@ -847,6 +829,96 @@ function evalCondition(leftStr, cmp, rightStr) {
     return false;
 }
 
+// Парсер логических выражений: AND, OR, NOT, скобки
+// Грамматика: expr = orExpr; orExpr = andExpr (OR andExpr)*; andExpr = notExpr (AND notExpr)*; notExpr = NOT notExpr | atom; atom = '(' expr ')' | comparison
+function evalLogicalExpr(str) {
+    const tokens = tokenizeLogical(str.trim());
+    const [result, pos] = parseOr(tokens, 0);
+    if (pos !== tokens.length) throw new Error(`Лишние символы в условии: "${tokens.slice(pos).map(t=>t.value).join(' ')}"`);
+    return result;
+}
+
+function tokenizeLogical(str) {
+    const tokens = [];
+    let i = 0;
+    while (i < str.length) {
+        if (str[i] === ' ') { i++; continue; }
+        if (str[i] === '(') { tokens.push({ type: 'lparen', value: '(' }); i++; continue; }
+        if (str[i] === ')') { tokens.push({ type: 'rparen', value: ')' }); i++; continue; }
+        // keywords AND OR NOT
+        const upper = str.slice(i).toUpperCase();
+        if (upper.startsWith('AND') && !/[A-Z0-9_]/.test(str[i+3] || '')) {
+            tokens.push({ type: 'and', value: 'AND' }); i += 3; continue;
+        }
+        if (upper.startsWith('OR') && !/[A-Z0-9_]/.test(str[i+2] || '')) {
+            tokens.push({ type: 'or', value: 'OR' }); i += 2; continue;
+        }
+        if (upper.startsWith('NOT') && !/[A-Z0-9_]/.test(str[i+3] || '')) {
+            tokens.push({ type: 'not', value: 'NOT' }); i += 3; continue;
+        }
+        // collect comparison: read until AND/OR/NOT/(/), handling nested parens inside expressions
+        let chunk = '';
+        let depth = 0;
+        while (i < str.length) {
+            const u = str.slice(i).toUpperCase();
+            if (str[i] === '(' ) { depth++; chunk += str[i++]; continue; }
+            if (str[i] === ')' ) {
+                if (depth === 0) break;
+                depth--; chunk += str[i++]; continue;
+            }
+            if (depth === 0) {
+                if ((u.startsWith('AND') && !/[A-Z0-9_]/.test(str[i+3] || '')) ||
+                    (u.startsWith('OR')  && !/[A-Z0-9_]/.test(str[i+2] || '')) ||
+                    (u.startsWith('NOT') && !/[A-Z0-9_]/.test(str[i+3] || ''))) break;
+            }
+            chunk += str[i++];
+        }
+        const trimmed = chunk.trim();
+        if (trimmed) tokens.push({ type: 'cmp', value: trimmed });
+    }
+    return tokens;
+}
+
+function parseOr(tokens, pos) {
+    let [left, p] = parseAnd(tokens, pos);
+    while (p < tokens.length && tokens[p].type === 'or') {
+        let right; [right, p] = parseAnd(tokens, p + 1);
+        left = left || right;
+    }
+    return [left, p];
+}
+
+function parseAnd(tokens, pos) {
+    let [left, p] = parseNot(tokens, pos);
+    while (p < tokens.length && tokens[p].type === 'and') {
+        let right; [right, p] = parseNot(tokens, p + 1);
+        left = left && right;
+    }
+    return [left, p];
+}
+
+function parseNot(tokens, pos) {
+    if (pos < tokens.length && tokens[pos].type === 'not') {
+        const [val, p] = parseNot(tokens, pos + 1);
+        return [!val, p];
+    }
+    return parseLogicalAtom(tokens, pos);
+}
+
+function parseLogicalAtom(tokens, pos) {
+    if (pos >= tokens.length) throw new Error('Неожиданный конец логического выражения');
+    if (tokens[pos].type === 'lparen') {
+        const [val, p] = parseOr(tokens, pos + 1);
+        if (p >= tokens.length || tokens[p].type !== 'rparen') throw new Error('Ожидалась )');
+        return [val, p + 1];
+    }
+    if (tokens[pos].type === 'cmp') {
+        const val = evalConditionStr(tokens[pos].value);
+        return [val, pos + 1];
+    }
+    throw new Error(`Неожиданный токен в условии: "${tokens[pos].value}"`);
+}
+
 function markBlockError(block) {
     block.classList.add('block-error');
     setTimeout(() => block.classList.remove('block-error'), 2000);
@@ -952,35 +1024,23 @@ function executeBlock(block, stepNumber) {
             }
 
             if (block.dataset.blockType === 'while') {
-                const leftInput = block.querySelector('.while-left-input');
-                const cmpSelect = block.querySelector('.while-cmp-select');
-                const rightInput = block.querySelector('.while-right-input');
-                const leftStr = leftInput ? leftInput.value.trim() : '0';
-                const cmp = cmpSelect ? cmpSelect.value : '=';
-                const rightStr = rightInput ? rightInput.value.trim() : '0';
-                const condition = evalCondition(leftStr, cmp, rightStr);
-                addConsoleMessage(`while (${leftStr} ${cmp} ${rightStr}) → ${condition ? 'true' : 'false'}`, 'print');
-                let nextBlock = null;
-                if (condition) {
-                    nextBlock = getNextBlock(block, 'port-true');
-                } else {
-                    nextBlock = getNextBlock(block, 'port-false');
-                }
+                const condInput = block.querySelector('.while-cond-input');
+                const condStr = condInput ? condInput.value.trim() : '';
+                if (!condStr) { markBlockError(block); throw new Error('Не указано условие while'); }
+                const condition = evalLogicalExpr(condStr);
+                addConsoleMessage(`while (${condStr}) → ${condition ? 'true' : 'false'}`, 'print');
                 resolve({ 
                     printed: true, 
-                    nextBlock: nextBlock,
+                    nextBlock: condition ? getNextBlock(block, 'port-true') : getNextBlock(block, 'port-false'),
                 });
                 return;
             }
             if (block.dataset.blockType === 'if') {
-                const leftInput  = block.querySelector('.if-left-input');
-                const cmpSelect  = block.querySelector('.if-cmp-select');
-                const rightInput = block.querySelector('.if-right-input');
-                const leftStr  = leftInput  ? leftInput.value.trim()  : '0';
-                const cmp      = cmpSelect  ? cmpSelect.value         : '=';
-                const rightStr = rightInput ? rightInput.value.trim() : '0';
-                const condition = evalCondition(leftStr, cmp, rightStr);
-                addConsoleMessage(`if (${leftStr} ${cmp} ${rightStr}) → ${condition ? 'true' : 'false'}`, 'print');
+                const condInput = block.querySelector('.if-cond-input');
+                const condStr = condInput ? condInput.value.trim() : '';
+                if (!condStr) { markBlockError(block); throw new Error('Не указано условие if'); }
+                const condition = evalLogicalExpr(condStr);
+                addConsoleMessage(`if (${condStr}) → ${condition ? 'true' : 'false'}`, 'print');
                 resolve({ printed: true, nextBlock: condition ? getNextBlock(block, 'port-true') : getNextBlock(block, 'port-false') });
                 return;
             }
@@ -989,25 +1049,7 @@ function executeBlock(block, stepNumber) {
                 return;
             }
             if (block.dataset.blockType === 'end-while') {
-                function findWhileHeader(b, visited) {
-                    if (!visited) visited = new Set();
-                    if (visited.has(b)) return null;
-                    visited.add(b);
-                    for (const c of connections) {
-                        if (c.to === b) {
-                            if (c.from.dataset.blockType === 'while' || c.from.dataset.blockType === 'for') return c.from;
-                            const found = findWhileHeader(c.from, visited);
-                            if (found) return found;
-                        }
-                    }
-                    return null;
-                }
-                const whileBlock = findWhileHeader(block);
-                if (!whileBlock) {
-                    markBlockError(block);
-                    throw new Error('end while не связан ни с одним блоком while');
-                }
-                resolve({ printed: false, nextBlock: whileBlock });
+                resolve({ printed: false, nextBlock: getNextBlock(block, null) });
                 return;
             }
             if (block.dataset.blockType === 'array') {
@@ -1204,27 +1246,14 @@ function createWhileBlock(block) {
     const whileLabel = document.createElement('span');
     whileLabel.className = 'while-label';
     whileLabel.textContent = 'while';
-    const leftInput = document.createElement('input');
-    leftInput.type = 'text';
-    leftInput.className = 'while-left-input';
-    leftInput.placeholder = 'A';
-    leftInput.onmousedown = (e) => e.stopPropagation();
-    leftInput.onkeydown = (e) => e.stopPropagation();
-    const cmpSelect = document.createElement('select');
-    cmpSelect.className = 'while-cmp-select';
-    comparators.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c;
-        opt.textContent = c;
-        cmpSelect.appendChild(opt);
-    });
-    cmpSelect.onmousedown = (e) => e.stopPropagation();
-    const rightInput = document.createElement('input');
-    rightInput.type = 'text';
-    rightInput.className = 'while-right-input';
-    rightInput.placeholder = 'B';
-    rightInput.onmousedown = (e) => e.stopPropagation();
-    rightInput.onkeydown = (e) => e.stopPropagation();
+
+    const condInput = document.createElement('input');
+    condInput.type = 'text';
+    condInput.className = 'while-cond-input';
+    condInput.placeholder = 'a > 0 AND b < 10';
+    condInput.onmousedown = (e) => e.stopPropagation();
+    condInput.onkeydown = (e) => e.stopPropagation();
+
     const portTrue = document.createElement("div");
     portTrue.classList.add("port", "port-true");
     portTrue.title = 'true (выполнить тело цикла)';
@@ -1236,9 +1265,7 @@ function createWhileBlock(block) {
     block.innerHTML = '';
     block.classList.add('while-input-mode');
     block.appendChild(whileLabel);
-    block.appendChild(leftInput);
-    block.appendChild(cmpSelect);
-    block.appendChild(rightInput);
+    block.appendChild(condInput);
     block.appendChild(portTrue);
     block.appendChild(portFalse);
     block.dataset.blockType = 'while';
@@ -1342,6 +1369,10 @@ function createEndWhileBlock(block) {
     block.innerHTML = '';
     block.textContent = 'end cycle';
     block.dataset.blockType = 'end-while';
+    const port = document.createElement('div');
+    port.classList.add('port');
+    makePortConnectable(block, port);
+    block.appendChild(port);
 }
 
 function initEndIfSpawner(spawnerId) {
