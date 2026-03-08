@@ -19,7 +19,6 @@ const nextFive4 = ["I am twenty-first", "I am twenty-second", "I am twenty-third
 const nextFive5 = ["I am twenty-sixth", "I am twenty-seventh", "I am twenty-eighth", "I am twenty-ninth", "I am thirtieth"];
 
 initVarSpawner('spawnerVar');
-initOpSpawner('spawnerOp');
 initDeclareSpawner('spawnerDeclare');
 initAssignSpawner('spawnerAssign');
 initIfSpawner('spawnerIf');
@@ -28,6 +27,7 @@ initArraySpawner('spawnerArray');
 initWhileSpawner('spawnerWhile');
 initEndIfSpawner('spawnerEndIf');
 initEndWhileSpawner('spawnerEndWhile');
+initForSpawner('spawnerFor');
 initSpawner('spawnerGreen', 'green', nextFive2);
 initSpawner('spawnerOrange', 'orange', nextFive3);
 initSpawner('spawnerCyan', 'cyan', nextFive4);
@@ -622,7 +622,7 @@ function makePortConnectable(block, port) {
         e.stopPropagation();
         e.preventDefault();
         startBlock = block;
-        if (block.dataset.blockType === 'if' || block.dataset.blockType === 'while') {
+        if (block.dataset.blockType === 'if' || block.dataset.blockType === 'while' || block.dataset.blockType === 'for') {
             const pClass = port.classList.contains('port-true') ? 'port-true' : 'port-false';
             if (connections.some(conn => conn.from === block && conn.portClass === pClass)) return;
         } else {
@@ -648,12 +648,13 @@ function makePortConnectable(block, port) {
             if (target && target !== startBlock) {
                 const multiIn = target.dataset.blockType === 'end-if';
                 const targetIncoming = !multiIn && connections.some(conn => conn.to === target);
-                const startOutgoing = (block.dataset.blockType !== 'if' && block.dataset.blockType !== 'while')
+                const startOutgoing = (block.dataset.blockType !== 'if' && block.dataset.blockType !== 'while' || block.dataset.blockType !== 'for')
                     ? connections.some(conn => conn.from === startBlock) : false;
-                const isBackEdge = startBlock.dataset.blockType === 'end-while' && target.dataset.blockType === 'while';
+                const isBackEdge = startBlock.dataset.blockType === 'end-while' && target.dataset.blockType === 'while' 
+                                || startBlock.dataset.blockType === 'end-while' && block.dataset.blockType === 'for';
                 const cycle = !isBackEdge && wouldCreateCycle(startBlock, target);
 
-                if (block.dataset.blockType === 'if' || block.dataset.blockType === 'while') {
+                if (block.dataset.blockType === 'if' || block.dataset.blockType === 'while' || block.dataset.blockType === 'for') {
                     if (!targetIncoming && !cycle) {
                         connections.push({ from: startBlock, to: target, line: activeLine, portClass: dragPortClass });
                         updateConnections();
@@ -893,11 +894,12 @@ function executeBlock(block, stepNumber) {
                 const nameInput = block.querySelector('.assign-name-input');
                 const exprInput = block.querySelector('.assign-expr-input');
                 const name = nameInput ? nameInput.value.trim() : '';
+                const exprStr = exprInput ? exprInput.value.trim() : '';
                 const arrayMatch = name.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\[([^\]]+)\]$/);
                 if (arrayMatch) {
                     const arrayName = arrayMatch[1];
                     const indexExpr = arrayMatch[2].trim();
-                    const valueExpr = arrayMatch[3].trim();
+                    const valueExpr = exprStr;
                     if (!(arrayName in variables) || !Array.isArray(variables[arrayName])) {
                         markBlockError(block);
                         throw new Error(`"${arrayName}" не является массивом`);
@@ -918,7 +920,6 @@ function executeBlock(block, stepNumber) {
                     resolve({ printed: true, nextBlock: getNextBlock(block, null) });
                     return;
                 } else {
-                    const exprStr = exprInput ? exprInput.value.trim() : '';
                     if (!name) { markBlockError(block); throw new Error('Не указано имя переменной'); }
                     if (!(name in variables)) { markBlockError(block); throw new Error(`Переменная "${name}" не объявлена`); }
                     let result = evalExpr(exprStr);
@@ -929,6 +930,27 @@ function executeBlock(block, stepNumber) {
                     return;
                 }
             }
+
+            if (block.dataset.blockType === 'for') {
+                const initInput = block.querySelector('.for-init-input');
+                const condInput = block.querySelector('.for-cond-input');
+                const stepInput = block.querySelector('.for-step-input');
+                const initStr = initInput ? initInput.value.trim() : '';
+                const condStr = condInput ? condInput.value.trim() : '';
+                const stepStr = stepInput ? stepInput.value.trim() : '';
+                if (block.dataset.forInited !== '1') {
+                    if (initStr) { try { execSimpleStatement(initStr); } catch(e) { markBlockError(block); throw e; } }
+                    block.dataset.forInited = '1';
+                } else {
+                    if (stepStr) { try { execSimpleStatement(stepStr); } catch(e) { markBlockError(block); throw e; } }
+                }
+                let condition = true;
+                if (condStr) { try { condition = evalConditionStr(condStr); } catch(e) { markBlockError(block); throw e; } }
+                addConsoleMessage(`for (${initStr}; ${condStr}; ${stepStr}) → ${condition ? 'true' : 'false'}`, 'print');
+                resolve({ printed: true, nextBlock: condition ? getNextBlock(block, 'port-true') : getNextBlock(block, 'port-false') });
+                return;
+            }
+
             if (block.dataset.blockType === 'while') {
                 const leftInput = block.querySelector('.while-left-input');
                 const cmpSelect = block.querySelector('.while-cmp-select');
@@ -973,7 +995,7 @@ function executeBlock(block, stepNumber) {
                     visited.add(b);
                     for (const c of connections) {
                         if (c.to === b) {
-                            if (c.from.dataset.blockType === 'while') return c.from;
+                            if (c.from.dataset.blockType === 'while' || c.from.dataset.blockType === 'for') return c.from;
                             const found = findWhileHeader(c.from, visited);
                             if (found) return found;
                         }
@@ -1080,8 +1102,23 @@ function executeBlock(block, stepNumber) {
             const input = block.querySelector('.block-input');
             if (input) {
                 const raw = input.value.trim() || '(пусто)';
-                const output = resolveValue(raw);
-                addConsoleMessage(String(output), 'print');
+                let output;
+                const trimmed = raw.trim();
+                if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmed) && trimmed in variables) {
+                    const val = variables[trimmed];
+                    if (Array.isArray(val)) {
+                        output = '[' + val.join(', ') + ']';
+                    } else {
+                        output = String(val);
+                    }
+                } else {
+                    try {
+                        output = String(evalExpr(trimmed));
+                    } catch {
+                        output = String(resolveValue(trimmed));
+                    }
+                }
+                addConsoleMessage(output, 'print');
                 resolve({ printed: true, nextBlock: getNextBlock(block, null) });
                 return;
             }
@@ -1212,6 +1249,7 @@ async function executeOutputPrint() {
     executionInProgress = true;
     variables = {};
     varTypes = {};
+    document.querySelectorAll('.block[data-block-type="for"]').forEach(b => { b.dataset.forInited = '0'; });
     const runButton = document.getElementById('runButton');
     runButton.classList.add('running');
     const startBlockEl = document.getElementById('startBlock');
@@ -1302,7 +1340,7 @@ function createEndIfBlock(block) {
 
 function createEndWhileBlock(block) {
     block.innerHTML = '';
-    block.textContent = 'end while';
+    block.textContent = 'end cycle';
     block.dataset.blockType = 'end-while';
 }
 
@@ -1336,6 +1374,112 @@ function initEndWhileSpawner(spawnerId) {
         newBlock.style.position = 'absolute';
         newBlock.style.left = (e.clientX - 60) + 'px';
         newBlock.style.top = (e.clientY - 25) + 'px';
+        document.body.appendChild(newBlock);
+        newBlock.onmousedown = (ev) => {
+            if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
+            ev.stopPropagation();
+            startDrag(ev, newBlock);
+        };
+        startDrag(e, newBlock);
+    };
+}
+
+function evalConditionStr(condStr) {
+    condStr = condStr.trim();
+    for (const cmp of ['>=', '<=', '!=', '>', '<', '=']) {
+        const idx = condStr.indexOf(cmp);
+        if (idx !== -1) {
+            const left = condStr.slice(0, idx).trim();
+            const right = condStr.slice(idx + cmp.length).trim();
+            return evalCondition(left, cmp, right);
+        }
+    }
+    throw new Error(`Не удалось разобрать условие: "${condStr}"`);
+}
+
+function execSimpleStatement(stmt) {
+    stmt = stmt.trim();
+    if (!stmt) return;
+    const arrMatch = stmt.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\[([^\]]+)\]\s*=\s*(.+)$/);
+    if (arrMatch) {
+        const arrayName = arrMatch[1];
+        const index = evalExpr(arrMatch[2].trim());
+        if (!Number.isInteger(index) || index < 0) throw new Error(`Некорректный индекс: ${index}`);
+        if (index >= variables[arrayName].length) throw new Error(`Индекс ${index} вне границ`);
+        variables[arrayName][index] = evalExpr(arrMatch[3].trim());
+        return;
+    }
+    const varMatch = stmt.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/);
+    if (varMatch) {
+        const name = varMatch[1];
+        const val = evalExpr(varMatch[2].trim());
+        variables[name] = val;
+        if (varTypes[name] === 'int') variables[name] = Math.trunc(val);
+        return;
+    }
+    throw new Error(`Не удалось разобрать: "${stmt}"`);
+}
+
+function createForBlock(block) {
+    const forLabel = document.createElement('span');
+    forLabel.className = 'for-label';
+    forLabel.textContent = 'for';
+    const initInput = document.createElement('input');
+    initInput.type = 'text';
+    initInput.className = 'for-init-input';
+    initInput.placeholder = 'init';
+    initInput.onmousedown = (e) => e.stopPropagation();
+    initInput.onkeydown = (e) => e.stopPropagation();
+    const sep1 = document.createElement('span');
+    sep1.className = 'for-sep';
+    sep1.textContent = ';';
+    const condInput = document.createElement('input');
+    condInput.type = 'text';
+    condInput.className = 'for-cond-input';
+    condInput.placeholder = 'cond';
+    condInput.onmousedown = (e) => e.stopPropagation();
+    condInput.onkeydown = (e) => e.stopPropagation();
+    const sep2 = document.createElement('span');
+    sep2.className = 'for-sep';
+    sep2.textContent = ';';
+    const stepInput = document.createElement('input');
+    stepInput.type = 'text';
+    stepInput.className = 'for-step-input';
+    stepInput.placeholder = 'step';
+    stepInput.onmousedown = (e) => e.stopPropagation();
+    stepInput.onkeydown = (e) => e.stopPropagation();
+    const portTrue = document.createElement('div');
+    portTrue.classList.add('port', 'port-true');
+    portTrue.title = 'true (тело цикла)';
+    makePortConnectable(block, portTrue);
+    const portFalse = document.createElement('div');
+    portFalse.classList.add('port', 'port-false');
+    portFalse.title = 'false (выход)';
+    makePortConnectable(block, portFalse);
+    block.innerHTML = '';
+    block.classList.add('for-input-mode');
+    block.appendChild(forLabel);
+    block.appendChild(initInput);
+    block.appendChild(sep1);
+    block.appendChild(condInput);
+    block.appendChild(sep2);
+    block.appendChild(stepInput);
+    block.appendChild(portTrue);
+    block.appendChild(portFalse);
+    block.dataset.blockType = 'for';
+    block.dataset.forInited = '0';
+}
+
+function initForSpawner(spawnerId) {
+    const spawner = document.getElementById(spawnerId);
+    spawner.onmousedown = (e) => {
+        e.preventDefault();
+        const newBlock = document.createElement('div');
+        newBlock.classList.add('block', 'forblock');
+        createForBlock(newBlock);
+        newBlock.style.position = 'absolute';
+        newBlock.style.left = (e.clientX - 75) + 'px';
+        newBlock.style.top = (e.clientY - 30) + 'px';
         document.body.appendChild(newBlock);
         newBlock.onmousedown = (ev) => {
             if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;

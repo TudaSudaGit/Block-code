@@ -544,7 +544,8 @@ svg {
 .left-panel .block.assign,
 .left-panel .block.ifblock,
 .left-panel .block.array,
-.left-panel .block.while {
+.left-panel .block.while,
+.left-panel .block.forblock {
     width: 120px;
     height: 60px;
     font-size: 14px;
@@ -882,4 +883,59 @@ svg {
     text-align: center;
     outline: none;
     padding: 2px 3px;
+}
+
+.block.forblock {
+    border: 5px solid #80CBC4;
+    background-color: #26A69A;
+    color: #000;
+    width: 260px;
+    height: 60px;
+}
+
+.block.forblock.for-input-mode {
+    padding: 0 18px 0 4px;
+    gap: 2px;
+    overflow: hidden;
+    flex-wrap: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.for-label {
+    font-size: 12px;
+    font-weight: bold;
+    color: #fff;
+    flex-shrink: 0;
+    margin-right: 2px;
+}
+
+.for-sep {
+    font-size: 13px;
+    font-weight: bold;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.for-init-input,
+.for-cond-input,
+.for-step-input {
+    background: rgba(0,0,0,0.15);
+    border: 1px solid rgba(0,0,0,0.2);
+    border-radius: 4px;
+    color: #000;
+    font-size: 10px;
+    font-weight: bold;
+    text-align: center;
+    outline: none;
+    padding: 2px 1px;
+    width: 56px;
+}
+
+.for-init-input::placeholder,
+.for-cond-input::placeholder,
+.for-step-input::placeholder {
+    color: rgba(0,0,0,0.35);
+    font-size: 9px;
 }
