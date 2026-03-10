@@ -93,7 +93,7 @@ function createDropdown(block, isOutputBlock = false) {
         const input = document.createElement('input');
         input.type = 'text';
         input.className = 'block-input';
-        input.placeholder = 'Введите текст...';
+        input.placeholder = 'input';
         input.onmousedown = (e) => e.stopPropagation();
         
         let textToPrint = '';
@@ -130,7 +130,7 @@ function createVarBlock(block){
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
     nameInput.className = 'var-name-input';
-    nameInput.placeholder = 'имя';
+    nameInput.placeholder = 'name';
     nameInput.onmousedown = (e) => e.stopPropagation();
     nameInput.onkeydown = (e) => e.stopPropagation();
 
@@ -141,7 +141,7 @@ function createVarBlock(block){
     const valInput = document.createElement('input');
     valInput.type = 'text';
     valInput.className = 'var-val-input';
-    valInput.placeholder = 'значение';
+    valInput.placeholder = 'value';
     valInput.onmousedown = (e) => e.stopPropagation();
     valInput.onkeydown = (e) => e.stopPropagation();
 
@@ -241,7 +241,7 @@ function createAssignBlock(block) {
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
     nameInput.className = 'assign-name-input';
-    nameInput.placeholder = 'имя';
+    nameInput.placeholder = 'name';
     nameInput.onmousedown = (e) => e.stopPropagation();
     nameInput.onkeydown = (e) => e.stopPropagation();
 
@@ -252,7 +252,7 @@ function createAssignBlock(block) {
     const exprInput = document.createElement('input');
     exprInput.type = 'text';
     exprInput.className = 'assign-expr-input';
-    exprInput.placeholder = 'выражение';
+    exprInput.placeholder = 'expression';
     exprInput.onmousedown = (e) => e.stopPropagation();
     exprInput.onkeydown = (e) => e.stopPropagation();
 
@@ -773,7 +773,7 @@ function evalCondition(leftStr, cmp, rightStr) {
     const b = evalExpr(rightStr);
     if (cmp === '>')  return a > b;
     if (cmp === '<')  return a < b;
-    if (cmp === '=')  return a === b;
+    if (cmp === '==')  return a === b;
     if (cmp === '!=') return a !== b;
     if (cmp === '>=') return a >= b;
     if (cmp === '<=') return a <= b;
@@ -810,8 +810,8 @@ function tokenizeLogical(str) {
             const u = str.slice(i).toUpperCase();
             if (str[i] === '(' ) { depth++; chunk += str[i++]; continue; }
             if (str[i] === ')' ) {
-                if (depth === 0) break;
-                depth--; chunk += str[i++]; continue;
+                depth--; chunk += str[i++];
+                continue;
             }
             if (depth === 0) {
                 if ((u.startsWith('AND') && !/[A-Z0-9_]/.test(str[i+3] || '')) ||
@@ -853,10 +853,10 @@ function parseNot(tokens, pos) {
 }
 
 function parseLogicalAtom(tokens, pos) {
-    if (pos >= tokens.length) throw new Error('Неожиданный конец логического выражения');
+    if (pos >= tokens.length) throw new Error('Неожиданно!');
     if (tokens[pos].type === 'lparen') {
         const [val, p] = parseOr(tokens, pos + 1);
-        if (p >= tokens.length || tokens[p].type !== 'rparen') throw new Error('Ожидалась )');
+        if (p >= tokens.length || tokens[p].type !== 'rparen') throw new Error('Ожидалось закрытие скобки');
         return [val, p + 1];
     }
     if (tokens[pos].type === 'cmp') {
@@ -890,7 +890,7 @@ function executeBlock(block, stepNumber) {
                 const namesInput = block.querySelector('.declare-names-input');
                 const declType = typeSelect ? typeSelect.value : 'int';
                 const raw = namesInput ? namesInput.value : '';
-                const parts = raw.split('=');
+                const parts = raw.split('==');
                 const names = parts[0].split(',').map(s => s.trim()).filter(s => s.length > 0);
                 const valueStrs = parts[1] ? parts[1].split(',').map(s => s.trim()) : [];
                 if (names.length === 0) { markBlockError(block); throw new Error('Не указаны имена переменных'); }
@@ -1128,7 +1128,7 @@ function createArrayBlock(block) {
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
     nameInput.className = 'array-name-input';
-    nameInput.placeholder = 'имя';
+    nameInput.placeholder = 'name';
     nameInput.onmousedown = (e) => e.stopPropagation();
     nameInput.onkeydown = (e) => e.stopPropagation();
 
@@ -1139,7 +1139,7 @@ function createArrayBlock(block) {
     const sizeInput = document.createElement('input');
     sizeInput.type = 'text';
     sizeInput.className = 'array-size-input';
-    sizeInput.placeholder = 'размер';
+    sizeInput.placeholder = 'size';
     sizeInput.onmousedown = (e) => e.stopPropagation();
     sizeInput.onkeydown = (e) => e.stopPropagation();
 
@@ -1150,7 +1150,7 @@ function createArrayBlock(block) {
     const elementsInput = document.createElement('input');
     elementsInput.type = 'text';
     elementsInput.className = 'array-elements-input';
-    elementsInput.placeholder = 'элементы через запятую';
+    elementsInput.placeholder = 'elements';
     elementsInput.onmousedown = (e) => e.stopPropagation();
     elementsInput.onkeydown = (e) => e.stopPropagation();
 
@@ -1364,7 +1364,7 @@ function initEndWhileSpawner(spawnerId) {
 
 function evalConditionStr(condStr) {
     condStr = condStr.trim();
-    for (const cmp of ['>=', '<=', '!=', '>', '<', '=']) {
+    for (const cmp of ['>=', '<=', '!=', '>', '<', '==']) {
         const idx = condStr.indexOf(cmp);
         if (idx !== -1) {
             const left = condStr.slice(0, idx).trim();
