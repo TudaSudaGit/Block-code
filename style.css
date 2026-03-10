@@ -626,22 +626,15 @@ svg {
 }
 
 .block.ifblock.if-input-mode {
-    padding: 0 4px 0 4px;
-    gap: 2px;
+    padding: 0 18px 0 8px;
+    gap: 6px;
     overflow: hidden;
     flex-wrap: nowrap;
 }
 
-.if-label {
-    font-size: 12px;
-    font-weight: bold;
-    color: #fff;
-    flex-shrink: 0;
-}
-
-.if-left-input,
-.if-right-input {
-    width: 32px;
+.if-cond-input {
+    flex: 1;
+    min-width: 0;
     background: rgba(0,0,0,0.15);
     border: 1px solid rgba(0,0,0,0.2);
     border-radius: 4px;
@@ -650,27 +643,12 @@ svg {
     font-weight: bold;
     text-align: center;
     outline: none;
-    padding: 2px 1px;
+    padding: 4px 4px;
 }
 
-.if-left-input::placeholder,
-.if-right-input::placeholder {
-    color: rgba(0,0,0,0.35);
+.if-cond-input::placeholder {
+    color: rgba(0,0,0,0.4);
     font-size: 9px;
-}
-
-.if-cmp-select {
-    background: rgba(0,0,0,0.15);
-    border: 1px solid rgba(0,0,0,0.2);
-    border-radius: 4px;
-    color: #000;
-    font-size: 11px;
-    font-weight: bold;
-    text-align: center;
-    outline: none;
-    width: 38px;
-    cursor: pointer;
-    padding: 0;
 }
 
 .port-true {
@@ -784,7 +762,7 @@ svg {
 
 .block.while.while-input-mode {
     padding: 0 18px 0 8px;
-    gap: 4px;
+    gap: 6px;
     overflow: visible;
     flex-wrap: nowrap;
     display: flex;
@@ -792,16 +770,9 @@ svg {
     justify-content: center;
 }
 
-.while-label {
-    font-size: 14px;
-    font-weight: bold;
-    color: #333;
-    flex-shrink: 0;
-}
-
-.while-left-input,
-.while-right-input {
-    width: 40px;
+.while-cond-input {
+    flex: 1;
+    min-width: 0;
     background: rgba(0,0,0,0.1);
     border: 1px solid rgba(0,0,0,0.2);
     border-radius: 4px;
@@ -810,21 +781,12 @@ svg {
     font-weight: bold;
     text-align: center;
     outline: none;
-    padding: 3px 2px;
+    padding: 4px 4px;
 }
 
-.while-cmp-select {
-    background: rgba(0,0,0,0.15);
-    border: 1px solid rgba(0,0,0,0.2);
-    border-radius: 4px;
-    color: #000;
-    font-size: 11px;
-    font-weight: bold;
-    text-align: center;
-    outline: none;
-    width: 45px;
-    cursor: pointer;
-    padding: 2px;
+.while-cond-input::placeholder {
+    color: rgba(0,0,0,0.4);
+    font-size: 9px;
 }
 
 .block.end-if {
@@ -939,3 +901,5 @@ svg {
     color: rgba(0,0,0,0.35);
     font-size: 9px;
 }
+
+
