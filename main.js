@@ -8,11 +8,6 @@ let executionInProgress = false;
 let variables = {};
 let varTypes = {};
 
-const operators = ["+", "-", "*", "/", "%"];
-const comparators = [">", "<", "=", "!=", ">=", "<="];
-
-const firstFive = ["I am first", "I am second", "I am third", "I am fourth", "I am fifth"];
-
 initVarSpawner('spawnerVar');
 initDeclareSpawner('spawnerDeclare');
 initAssignSpawner('spawnerAssign');
@@ -96,12 +91,6 @@ function createDropdown(block, isOutputBlock = false) {
         input.placeholder = 'input';
         input.onmousedown = (e) => e.stopPropagation();
         
-        let textToPrint = '';
-        
-        input.oninput = (e) => {
-            textToPrint = e.target.value;
-        };
-        
         input.onkeydown = (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -119,11 +108,7 @@ function createDropdown(block, isOutputBlock = false) {
         block.classList.add('text-input-mode');
         block.appendChild(input);
         block.appendChild(port);
-        
-        block.getPrintText = () => {
-            return textToPrint || input.placeholder;
-        };
-    } else {}
+    } 
 }
 
 function createVarBlock(block){
@@ -155,56 +140,6 @@ function createVarBlock(block){
     block.appendChild(valInput);
     block.appendChild(port);
     block.dataset.blockType = 'var';
-}
-
-function createOpBlock(block) {
-    const aInput = document.createElement('input');
-    aInput.type = 'text';
-    aInput.className = 'op-a-input';
-    aInput.placeholder = 'A';
-    aInput.onmousedown = (e) => e.stopPropagation();
-    aInput.onkeydown = (e) => e.stopPropagation();
-
-    const select = document.createElement('select');
-    select.className = 'op-select';
-    operators.forEach(op => {
-        const opt = document.createElement('option');
-        opt.value = op;
-        opt.textContent = op;
-        select.appendChild(opt);
-    });
-    select.onmousedown = (e) => e.stopPropagation();
-
-    const bInput = document.createElement('input');
-    bInput.type = 'text';
-    bInput.className = 'op-b-input';
-    bInput.placeholder = 'B';
-    bInput.onmousedown = (e) => e.stopPropagation();
-    bInput.onkeydown = (e) => e.stopPropagation();
-
-    const arrow = document.createElement('span');
-    arrow.className = 'op-arrow-label';
-    arrow.textContent = '->';
-
-    const resInput = document.createElement('input');
-    resInput.type = 'text';
-    resInput.className = 'op-res-input';
-    resInput.placeholder = 'итог';
-    resInput.onmousedown = (e) => e.stopPropagation();
-    resInput.onkeydown = (e) => e.stopPropagation();
-
-    const port = document.createElement("div");
-    port.classList.add("port");
-    makePortConnectable(block, port);
-    block.innerHTML = '';
-    block.classList.add('op-input-mode');
-    block.appendChild(aInput);
-    block.appendChild(select);
-    block.appendChild(bInput);
-    block.appendChild(arrow);
-    block.appendChild(resInput);
-    block.appendChild(port);
-    block.dataset.blockType = 'op';
 }
 
 function createDeclareBlock(block) {
@@ -327,26 +262,6 @@ function initVarSpawner(spawnerId) {
         createVarBlock(newBlock);
         newBlock.style.position = 'absolute';
         newBlock.style.left = (e.clientX - 60) + 'px';
-        newBlock.style.top = (e.clientY - 30) + 'px';
-        document.body.appendChild(newBlock);
-        newBlock.onmousedown = (ev) => {
-            if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
-            ev.stopPropagation();
-            startDrag(ev, newBlock);
-        };
-        startDrag(e, newBlock);
-    };
-}
-
-function initOpSpawner(spawnerId) {
-    const spawner = document.getElementById(spawnerId);
-    spawner.onmousedown = (e) => {
-        e.preventDefault();
-        const newBlock = document.createElement('div');
-        newBlock.classList.add('block', 'operation');
-        createOpBlock(newBlock);
-        newBlock.style.position = 'absolute';
-        newBlock.style.left = (e.clientX - 75) + 'px';
         newBlock.style.top = (e.clientY - 30) + 'px';
         document.body.appendChild(newBlock);
         newBlock.onmousedown = (ev) => {
@@ -866,11 +781,6 @@ function parseLogicalAtom(tokens, pos) {
     throw new Error(`Неожиданный токен в условии: "${tokens[pos].value}"`);
 }
 
-function markBlockError(block) {
-    block.classList.add('block-error');
-    setTimeout(() => block.classList.remove('block-error'), 2000);
-}
-
 function getNextBlock(fromBlock, portClass) {
     for (let conn of connections) {
         if (conn.from !== fromBlock) continue;
@@ -880,248 +790,245 @@ function getNextBlock(fromBlock, portClass) {
     return null;
 }
 
-function executeBlock(block, stepNumber) {
-    return new Promise((resolve, reject) => {
-        block.classList.add('executing');
-        setTimeout(() => block.classList.remove('executing'), 300);
-        try {
-            if (block.dataset.blockType === 'declare') {
-                const typeSelect = block.querySelector('.declare-type-select');
-                const namesInput = block.querySelector('.declare-names-input');
-                const declType = typeSelect ? typeSelect.value : 'int';
-                const raw = namesInput ? namesInput.value : '';
-                const parts = raw.split('==');
-                const names = parts[0].split(',').map(s => s.trim()).filter(s => s.length > 0);
-                const valueStrs = parts[1] ? parts[1].split(',').map(s => s.trim()) : [];
-                if (names.length === 0) { markBlockError(block); throw new Error('Не указаны имена переменных'); }
-                names.forEach((name, i) => {
-                    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) { markBlockError(block); throw new Error(`Недопустимое имя: "${name}"`); }
-                    let val = 0;
-                    if (valueStrs[i] !== undefined && valueStrs[i] !== '') {
-                        try { val = evalExpr(valueStrs[i]); } catch { val = 0; }
-                    }
-                    if (declType === 'int') val = Math.trunc(val);
-                    variables[name] = val;
-                    varTypes[name] = declType;
-                });
-                const display = names.map((n) => `${n}=${variables[n]}`).join(', ');
-                addConsoleMessage(`${declType} ${display}`, 'print');
-                resolve({ printed: true, nextBlock: getNextBlock(block, null) });
-                return;
-            }
-            if (block.dataset.blockType === 'assign') {
-                const nameInput = block.querySelector('.assign-name-input');
-                const exprInput = block.querySelector('.assign-expr-input');
-                const name = nameInput ? nameInput.value.trim() : '';
-                const exprStr = exprInput ? exprInput.value.trim() : '';
-                const arrayMatch = name.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\[([^\]]+)\]$/);
-                if (arrayMatch) {
-                    const arrayName = arrayMatch[1];
-                    const indexExpr = arrayMatch[2].trim();
-                    const valueExpr = exprStr;
-                    if (!(arrayName in variables) || !Array.isArray(variables[arrayName])) {
-                        markBlockError(block);
-                        throw new Error(`"${arrayName}" не является массивом`);
-                    }
-                    const index = evalExpr(indexExpr);
-                    if (!Number.isInteger(index) || index < 0) {
-                        markBlockError(block);
-                        throw new Error(`Индекс массива должен быть неотрицательным целым числом: ${index}`);
-                    }
-                    const array = variables[arrayName];
-                    if (index >= array.length) {
-                        markBlockError(block);
-                        throw new Error(`Индекс ${index} вне границ массива "${arrayName}" (длина: ${array.length})`);
-                    }
-                    const value = evalExpr(valueExpr);
-                    array[index] = value;
-                    addConsoleMessage(`${arrayName}[${index}] = ${value}`, 'print');
-                    resolve({ printed: true, nextBlock: getNextBlock(block, null) });
-                    return;
-                } else {
-                    if (!name) { markBlockError(block); throw new Error('Не указано имя переменной'); }
-                    if (!(name in variables)) { markBlockError(block); throw new Error(`Переменная "${name}" не объявлена`); }
-                    let result = evalExpr(exprStr);
-                    if (varTypes[name] === 'int') result = Math.trunc(result);
-                    variables[name] = result;
-                    addConsoleMessage(`${name} = ${result}`, 'print');
-                    resolve({ printed: true, nextBlock: getNextBlock(block, null) });
-                    return;
-                }
-            }
+function handleDeclare(block) {
+    const declType = block.querySelector('.declare-type-select')?.value ?? 'int';
+    const raw      = block.querySelector('.declare-names-input')?.value ?? '';
+    const parts     = raw.split('=');
+    const names     = parts[0].split(',').map(s => s.trim()).filter(Boolean);
+    const valueStrs = parts[1] ? parts[1].split(',').map(s => s.trim()) : [];
 
-            if (block.dataset.blockType === 'for') {
-                const initInput = block.querySelector('.for-init-input');
-                const condInput = block.querySelector('.for-cond-input');
-                const stepInput = block.querySelector('.for-step-input');
-                const initStr = initInput ? initInput.value.trim() : '';
-                const condStr = condInput ? condInput.value.trim() : '';
-                const stepStr = stepInput ? stepInput.value.trim() : '';
-                if (block.dataset.forInited !== '1') {
-                    if (initStr) { try { execSimpleStatement(initStr); } catch(e) { markBlockError(block); throw e; } }
-                    block.dataset.forInited = '1';
-                } else {
-                    if (stepStr) { try { execSimpleStatement(stepStr); } catch(e) { markBlockError(block); throw e; } }
-                }
-                let condition = true;
-                if (condStr) { try { condition = evalConditionStr(condStr); } catch(e) { markBlockError(block); throw e; } }
-                addConsoleMessage(`for (${initStr}; ${condStr}; ${stepStr}) → ${condition ? 'true' : 'false'}`, 'print');
-                resolve({ printed: true, nextBlock: condition ? getNextBlock(block, 'port-true') : getNextBlock(block, 'port-false') });
-                return;
-            }
+    if (names.length === 0) {
+        throw new Error('Не указаны имена переменных');
+    }
 
-            if (block.dataset.blockType === 'while') {
-                const condInput = block.querySelector('.while-cond-input');
-                const condStr = condInput ? condInput.value.trim() : '';
-                if (!condStr) { markBlockError(block); throw new Error('Не указано условие while'); }
-                const condition = evalLogicalExpr(condStr);
-                addConsoleMessage(`while (${condStr}) → ${condition ? 'true' : 'false'}`, 'print');
-                resolve({ 
-                    printed: true, 
-                    nextBlock: condition ? getNextBlock(block, 'port-true') : getNextBlock(block, 'port-false'),
-                });
-                return;
-            }
-            if (block.dataset.blockType === 'if') {
-                const condInput = block.querySelector('.if-cond-input');
-                const condStr = condInput ? condInput.value.trim() : '';
-                if (!condStr) { markBlockError(block); throw new Error('Не указано условие if'); }
-                const condition = evalLogicalExpr(condStr);
-                addConsoleMessage(`if (${condStr}) → ${condition ? 'true' : 'false'}`, 'print');
-                resolve({ printed: true, nextBlock: condition ? getNextBlock(block, 'port-true') : getNextBlock(block, 'port-false') });
-                return;
-            }
-            if (block.dataset.blockType === 'end-if') {
-                resolve({ printed: false, nextBlock: getNextBlock(block, null) });
-                return;
-            }
-            if (block.dataset.blockType === 'end-while') {
-                resolve({ printed: false, nextBlock: getNextBlock(block, null) });
-                return;
-            }
-            if (block.dataset.blockType === 'array') {
-                const nameInput = block.querySelector('.array-name-input');
-                const sizeInput = block.querySelector('.array-size-input');
-                const elementsInput = block.querySelector('.array-elements-input');
-                const name = nameInput ? nameInput.value.trim() : '';
-                const size = sizeInput ? sizeInput.value.trim() : '';
-                const elementsStr = elementsInput ? elementsInput.value.trim() : '';
-                if (!name) { 
-                    markBlockError(block); 
-                    throw new Error('Не указано имя массива'); 
-                }
-                const elements = elementsStr ? 
-                    elementsStr.split(',').map(e => e.trim()).filter(e => e !== '') : 
-                    [];
-                let expectedSize = null;
-                if (size) {
-                    try {
-                        expectedSize = evalExpr(size);
-                        if (typeof expectedSize !== 'number' || expectedSize <= 0) {
-                            throw new Error('Размер должен быть положительным числом');
-                        }
-                    } catch {
-                        markBlockError(block);
-                        throw new Error('Некорректный размер массива');
-                    }
-                }
-                const array = [];
-                if (elements.length > 0) {
-                    elements.forEach((element, index) => {
-                        try {
-                            array[index] = evalExpr(element);
-                        } catch {
-                            array[index] = resolveValue(element);
-                        }
-                    });
-                }
-                if (expectedSize !== null && array.length !== expectedSize) {
-                    markBlockError(block);
-                    throw new Error(`Размер массива (${array.length}) не соответствует заданному (${expectedSize})`);
-                }
-                variables[name] = array;
-                const arrayStr = array.map(v => 
-                    typeof v === 'string' ? `"${v}"` : v
-                ).join(', ');
-                addConsoleMessage(`${name} = [${arrayStr}]`, 'print');
-                resolve({ printed: true, nextBlock: getNextBlock(block, null) });
-                return;
-            }
-            if (block.dataset.blockType === 'var') {
-                const nameInput = block.querySelector('.var-name-input');
-                const valInput  = block.querySelector('.var-val-input');
-                const name   = nameInput ? nameInput.value.trim() : '';
-                const rawVal = valInput  ? valInput.value.trim()  : '';
-                if (name) {
-                    let resolved;
-                    try { resolved = evalExpr(rawVal); } catch { resolved = resolveValue(rawVal); }
-                    variables[name] = resolved;
-                    addConsoleMessage(`${name} = ${resolved}`, 'print');
-                }
-                resolve({ printed: !!name, nextBlock: getNextBlock(block, null) });
-                return;
-            }
-            if (block.dataset.blockType === 'op') {
-                const aInput   = block.querySelector('.op-a-input');
-                const sel      = block.querySelector('.op-select');
-                const bInput   = block.querySelector('.op-b-input');
-                const resInput = block.querySelector('.op-res-input');
-                const a  = resolveValue(aInput  ? aInput.value  : '0');
-                const op = sel ? sel.value : '+';
-                const b  = resolveValue(bInput  ? bInput.value  : '0');
-                const resName = resInput ? resInput.value.trim() : '';
-                const aNum = Number(a);
-                const bNum = Number(b);
-                let result;
-                if      (op === '+') result = aNum + bNum;
-                else if (op === '-') result = aNum - bNum;
-                else if (op === '*') result = aNum * bNum;
-                else if (op === '/') result = bNum !== 0 ? aNum / bNum : 'ошибка: деление на 0';
-                else if (op === '%') result = bNum !== 0 ? aNum % bNum : 'ошибка: деление на 0';
-                else result = 0;
-                if (resName) {
-                    variables[resName] = result;
-                    addConsoleMessage(`${resName} = ${a} ${op} ${b} = ${result}`, 'print');
-                } else {
-                    addConsoleMessage(`${a} ${op} ${b} = ${result}`, 'print');
-                }
-                resolve({ printed: true, nextBlock: getNextBlock(block, null) });
-                return;
-            }
-            const input = block.querySelector('.block-input');
-            if (input) {
-                const raw = input.value.trim() || '(пусто)';
-                let output;
-                const trimmed = raw.trim();
-                if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmed) && trimmed in variables) {
-                    const val = variables[trimmed];
-                    if (Array.isArray(val)) {
-                        output = '[' + val.join(', ') + ']';
-                    } else {
-                        output = String(val);
-                    }
-                } else {
-                    try {
-                        output = String(evalExpr(trimmed));
-                    } catch {
-                        output = String(resolveValue(trimmed));
-                    }
-                }
-                addConsoleMessage(output, 'print');
-                resolve({ printed: true, nextBlock: getNextBlock(block, null) });
-                return;
-            }
-            const select = block.querySelector('select');
-            if (select && select.value) {
-                addConsoleMessage(select.value, 'print');
-                resolve({ printed: true, nextBlock: getNextBlock(block, null) });
-                return;
-            }
-            resolve({ printed: false, nextBlock: getNextBlock(block, null) });
-        } catch(err) {
-            reject(err);
+    names.forEach((name, i) => {
+        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
+            throw new Error(`Недопустимое имя: "${name}"`);
         }
+
+        let val = 0;
+        if (valueStrs[i] !== undefined && valueStrs[i] !== '') {
+            try { val = evalExpr(valueStrs[i]); } catch { val = 0; }
+        }
+
+        if (declType === 'int') val = Math.trunc(val);
+        variables[name] = val;
+        varTypes[name]  = declType;
     });
+
+    const display = names.map(n => `${n}=${variables[n]}`).join(', ');
+    addConsoleMessage(`${declType} ${display}`, 'print');
+
+    return { printed: true, nextBlock: getNextBlock(block, null) };
+}
+
+function handleAssignArray(block, arrayName, indexExpr, valueExpr) {
+    if (!(arrayName in variables) || !Array.isArray(variables[arrayName])) {
+        throw new Error(`"${arrayName}" не является массивом`);
+    }
+
+    const index = evalExpr(indexExpr);
+    if (!Number.isInteger(index) || index < 0) {
+        throw new Error(`Индекс массива должен быть неотрицательным целым числом: ${index}`);
+    }
+
+    const array = variables[arrayName];
+    if (index >= array.length) {
+        throw new Error(`Индекс ${index} вне границ массива "${arrayName}" (длина: ${array.length})`);
+    }
+
+    array[index] = evalExpr(valueExpr);
+    addConsoleMessage(`${arrayName}[${index}] = ${array[index]}`, 'print');
+
+    return { printed: true, nextBlock: getNextBlock(block, null) };
+}
+
+function handleAssignVar(block, name, exprStr) {
+    if (!name) {
+        throw new Error('Не указано имя переменной');
+    }
+    if (!(name in variables)) {
+        throw new Error(`Переменная "${name}" не объявлена`);
+    }
+
+    let result = evalExpr(exprStr);
+    if (varTypes[name] === 'int') result = Math.trunc(result);
+
+    variables[name] = result;
+    addConsoleMessage(`${name} = ${result}`, 'print');
+
+    return { printed: true, nextBlock: getNextBlock(block, null) };
+}
+
+function handleAssign(block) {
+    const name    = block.querySelector('.assign-name-input')?.value.trim() ?? '';
+    const exprStr = block.querySelector('.assign-expr-input')?.value.trim() ?? '';
+
+    const arrayMatch = name.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\[([^\]]+)\]$/);
+    if (arrayMatch) {
+        return handleAssignArray(block, arrayMatch[1], arrayMatch[2].trim(), exprStr);
+    }
+
+    return handleAssignVar(block, name, exprStr);
+}
+
+function handleFor(block) {
+    const initStr = block.querySelector('.for-init-input')?.value.trim() ?? '';
+    const condStr = block.querySelector('.for-cond-input')?.value.trim() ?? '';
+    const stepStr = block.querySelector('.for-step-input')?.value.trim() ?? '';
+
+    if (block.dataset.forInited !== '1') {
+        if (initStr) execSimpleStatement(initStr);
+        block.dataset.forInited = '1';
+    } else {
+        if (stepStr) execSimpleStatement(stepStr);
+    }
+    let condition = true;
+    if (condStr) condition = evalConditionStr(condStr);
+    
+
+    addConsoleMessage(`for (${initStr}; ${condStr}; ${stepStr}) → ${condition ? 'true' : 'false'}`, 'print');
+
+    return {
+        printed: true,
+        nextBlock: getNextBlock(block, condition ? 'port-true' : 'port-false'),
+    };
+}
+
+function handleWhile(block) {
+    const condStr = block.querySelector('.while-cond-input')?.value.trim() ?? '';
+
+    if (!condStr) {
+        throw new Error('Не указано условие while');
+    }
+
+    const condition = evalLogicalExpr(condStr);
+    addConsoleMessage(`while (${condStr}) → ${condition ? 'true' : 'false'}`, 'print');
+
+    return {
+        printed: true,
+        nextBlock: getNextBlock(block, condition ? 'port-true' : 'port-false'),
+    };
+}
+
+function handleIf(block) {
+    const condStr = block.querySelector('.if-cond-input')?.value.trim() ?? '';
+
+    if (!condStr) {
+        throw new Error('Не указано условие if');
+    }
+
+    const condition = evalLogicalExpr(condStr);
+    addConsoleMessage(`if (${condStr}) → ${condition ? 'true' : 'false'}`, 'print');
+
+    return {
+        printed: true,
+        nextBlock: getNextBlock(block, condition ? 'port-true' : 'port-false'),
+    };
+}
+
+function handleArray(block) {
+    const name        = block.querySelector('.array-name-input')?.value.trim() ?? '';
+    const size        = block.querySelector('.array-size-input')?.value.trim() ?? '';
+    const elementsStr = block.querySelector('.array-elements-input')?.value.trim() ?? '';
+
+    if (!name) {
+        throw new Error('Не указано имя массива');
+    }
+
+    let expectedSize = null;
+    if (size) {
+        try {
+            expectedSize = evalExpr(size);
+            if (typeof expectedSize !== 'number' || expectedSize <= 0) {
+                throw new Error('Размер должен быть положительным числом');
+            }
+        } catch {
+            throw new Error('Некорректный размер массива');
+        }
+    }
+
+    const elements = elementsStr
+        ? elementsStr.split(',').map(e => e.trim()).filter(Boolean)
+        : [];
+
+    const array = elements.map(el => {
+        try { return evalExpr(el); }
+        catch { return resolveValue(el); }
+    });
+
+    if (expectedSize !== null && array.length !== expectedSize) {
+        throw new Error(`Размер массива (${array.length}) не соответствует заданному (${expectedSize})`);
+    }
+
+    variables[name] = array;
+
+    const arrayStr = array.map(v => typeof v === 'string' ? `"${v}"` : v).join(', ');
+    addConsoleMessage(`${name} = [${arrayStr}]`, 'print');
+
+    return { printed: true, nextBlock: getNextBlock(block, null) };
+}
+
+function handleVar(block) {
+    const name   = block.querySelector('.var-name-input')?.value.trim() ?? '';
+    const rawVal = block.querySelector('.var-val-input')?.value.trim()  ?? '';
+
+    if (name) {
+        let resolved;
+        try { resolved = evalExpr(rawVal); }
+        catch { resolved = resolveValue(rawVal); }
+
+        variables[name] = resolved;
+        addConsoleMessage(`${name} = ${resolved}`, 'print');
+    }
+
+    return { printed: !!name, nextBlock: getNextBlock(block, null) };
+}
+
+function handleOutput(block) {
+    const input = block.querySelector('.block-input');
+
+    if (input) {
+        const trimmed = input.value.trim() || '(пусто)';
+        let output;
+
+        if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmed) && trimmed in variables) {
+            const val = variables[trimmed];
+            output = Array.isArray(val) ? '[' + val.join(', ') + ']' : String(val);
+        } else {
+            try { output = String(evalExpr(trimmed)); }
+            catch { output = String(resolveValue(trimmed)); }
+        }
+
+        addConsoleMessage(output, 'print');
+        return { printed: true, nextBlock: getNextBlock(block, null) };
+    }
+    return { printed: false, nextBlock: getNextBlock(block, null) };
+}
+
+
+
+const blockHandlers = {
+    'declare':   handleDeclare,
+    'assign':    handleAssign,
+    'for':       handleFor,
+    'while':     handleWhile,
+    'if':        handleIf,
+    'end-if':    (block) => ({ printed: false, nextBlock: getNextBlock(block, null) }),
+    'end-while': (block) => ({ printed: false, nextBlock: getNextBlock(block, null) }),
+    'array':     handleArray,
+    'var':       handleVar,
+};
+
+
+function executeBlock(block) {
+    try {
+        const handler = blockHandlers[block.dataset.blockType];
+        if (handler) return Promise.resolve(handler(block));
+        return Promise.resolve(handleOutput(block));
+    } catch (err) {
+        return Promise.reject(err);
+    }
 }
 
 function createArrayBlock(block) {
@@ -1224,8 +1131,6 @@ async function executeOutputPrint() {
     variables = {};
     varTypes = {};
     document.querySelectorAll('.block[data-block-type="for"]').forEach(b => { b.dataset.forInited = '0'; });
-    const runButton = document.getElementById('runButton');
-    runButton.classList.add('running');
     const startBlockEl = document.getElementById('startBlock');
     let currentBlock = null;
     for (let conn of connections) {
@@ -1233,13 +1138,10 @@ async function executeOutputPrint() {
     }
     if (!currentBlock) {
         executionInProgress = false;
-        runButton.classList.remove('running');
         return;
     }
-    await new Promise(resolve => setTimeout(resolve, 500));
     let stepCount = 0;
-    let hasPrintedAnything = false;
-    const loopDetector = new Map();
+    let hasPrintedAnything = false; 
     const MAX_ITERATIONS = 10000;
     while (currentBlock) {
         stepCount++;
@@ -1249,21 +1151,12 @@ async function executeOutputPrint() {
         }
         let result;
         try {
-            result = await executeBlock(currentBlock, stepCount);
+            result = await executeBlock(currentBlock);
         } catch (err) {
             addConsoleMessage('ОШИБКА: ' + err.message, 'error');
             break;
         }
         if (result.printed) hasPrintedAnything = true;
-        if (currentBlock.dataset.blockType === 'while' && result.shouldLoop) {
-            const blockId = currentBlock.id || Array.from(currentBlock.classList).join('.');
-            const count = loopDetector.get(blockId) || 0;
-            if (count > 100) {
-                addConsoleMessage('ОШИБКА: Обнаружен бесконечный цикл в while блоке', 'error');
-                break;
-            }
-            loopDetector.set(blockId, count + 1);
-        }
         currentBlock = result.nextBlock;
         if (currentBlock && currentBlock.dataset.blockType === 'while') {
             await new Promise(resolve => setTimeout(resolve, 0));
@@ -1271,7 +1164,6 @@ async function executeOutputPrint() {
     }
     if (hasPrintedAnything) addConsoleMessage('Программа завершена', 'complete');
     executionInProgress = false;
-    runButton.classList.remove('running');
 }
 
 function initWhileSpawner(spawnerId) {
