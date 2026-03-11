@@ -9,28 +9,20 @@ let variables = {};
 let varTypes = {};
 
 const operators = ["+", "-", "*", "/", "%"];
-const comparators = [">", "<", "=", "!=", ">=", "<="];
+/*const comparators = [">", "<", "=", "!=", ">=", "<="];
 
 const firstFive = ["I am first", "I am second", "I am third", "I am fourth", "I am fifth"];
-const nextFive = ["I am sixth", "I am seventh", "I am eighth", "I am ninth", "I am tenth"];
-const nextFive2 = ["I am eleventh", "I am twelfth", "I am thirteenth", "I am fourteenth", "I am fifteenth"];
-const nextFive3 = ["I am sixteenth", "I am seventeenth", "I am eighteenth", "I am nineteenth", "I am twentieth"];
-const nextFive4 = ["I am twenty-first", "I am twenty-second", "I am twenty-third", "I am twenty-fourth", "I am twenty-fifth"];
-const nextFive5 = ["I am twenty-sixth", "I am twenty-seventh", "I am twenty-eighth", "I am twenty-ninth", "I am thirtieth"];
-
+*/
 initVarSpawner('spawnerVar');
 initDeclareSpawner('spawnerDeclare');
 initAssignSpawner('spawnerAssign');
 initIfSpawner('spawnerIf');
-initSpawner('spawnerOutput', 'output', firstFive, true);
+initSpawner('spawnerOutput', 'output', true);
 initArraySpawner('spawnerArray');
 initWhileSpawner('spawnerWhile');
 initEndIfSpawner('spawnerEndIf');
 initEndWhileSpawner('spawnerEndWhile');
 initForSpawner('spawnerFor');
-initSpawner('spawnerGreen', 'green', nextFive2);
-initSpawner('spawnerOrange', 'orange', nextFive3);
-initSpawner('spawnerCyan', 'cyan', nextFive4);
 
 const consoleContent = document.getElementById('consoleContent');
 const clearConsoleBtn = document.getElementById('clearConsole');
@@ -96,12 +88,12 @@ function startDrag(e, element) {
     offsetY = e.clientY - rect.top;
 }
 
-function createDropdown(block, optionsList, isOutputBlock = false) {
+function createDropdown(block, isOutputBlock = false) {
     if (isOutputBlock) {
         const input = document.createElement('input');
         input.type = 'text';
         input.className = 'block-input';
-        input.placeholder = 'Введите текст...';
+        input.placeholder = 'input';
         input.onmousedown = (e) => e.stopPropagation();
         
         let textToPrint = '';
@@ -131,55 +123,14 @@ function createDropdown(block, optionsList, isOutputBlock = false) {
         block.getPrintText = () => {
             return textToPrint || input.placeholder;
         };
-    } else {
-        const select = document.createElement('select');
-        
-        const placeholder = document.createElement('option');
-        placeholder.textContent = "Выбрать...";
-        placeholder.disabled = true;
-        placeholder.selected = true;
-        select.appendChild(placeholder);
-        
-        optionsList.forEach(text => {
-            const opt = document.createElement('option');
-            opt.value = text;
-            opt.textContent = text;
-            select.appendChild(opt);
-        });
-        
-        select.onmousedown = (e) => e.stopPropagation(); 
-        select.onchange = () => {
-            const oldPort = block.querySelector('.port');
-            block.innerHTML = '';
-            block.style.display = 'flex';
-            block.style.alignItems = 'center';
-            block.style.justifyContent = 'center';
-            block.textContent = select.value;
-            if (oldPort) {
-                block.appendChild(oldPort);
-            } else {
-                const port = document.createElement("div");
-                port.classList.add("port");
-                block.appendChild(port);
-                makePortConnectable(block, port);
-            }
-        };
-        
-        const port = document.createElement("div");
-        port.classList.add("port");
-        block.appendChild(port);
-        makePortConnectable(block, port);
-        block.innerHTML = "";
-        block.appendChild(select);
-        block.appendChild(port);
-    }
+    } else {}
 }
 
 function createVarBlock(block){
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
     nameInput.className = 'var-name-input';
-    nameInput.placeholder = 'имя';
+    nameInput.placeholder = 'name';
     nameInput.onmousedown = (e) => e.stopPropagation();
     nameInput.onkeydown = (e) => e.stopPropagation();
 
@@ -190,7 +141,7 @@ function createVarBlock(block){
     const valInput = document.createElement('input');
     valInput.type = 'text';
     valInput.className = 'var-val-input';
-    valInput.placeholder = 'значение';
+    valInput.placeholder = 'value';
     valInput.onmousedown = (e) => e.stopPropagation();
     valInput.onkeydown = (e) => e.stopPropagation();
 
@@ -206,60 +157,10 @@ function createVarBlock(block){
     block.dataset.blockType = 'var';
 }
 
-function createOpBlock(block) {
-    const aInput = document.createElement('input');
-    aInput.type = 'text';
-    aInput.className = 'op-a-input';
-    aInput.placeholder = 'A';
-    aInput.onmousedown = (e) => e.stopPropagation();
-    aInput.onkeydown = (e) => e.stopPropagation();
-
-    const select = document.createElement('select');
-    select.className = 'op-select';
-    operators.forEach(op => {
-        const opt = document.createElement('option');
-        opt.value = op;
-        opt.textContent = op;
-        select.appendChild(opt);
-    });
-    select.onmousedown = (e) => e.stopPropagation();
-
-    const bInput = document.createElement('input');
-    bInput.type = 'text';
-    bInput.className = 'op-b-input';
-    bInput.placeholder = 'B';
-    bInput.onmousedown = (e) => e.stopPropagation();
-    bInput.onkeydown = (e) => e.stopPropagation();
-
-    const arrow = document.createElement('span');
-    arrow.className = 'op-arrow-label';
-    arrow.textContent = '->';
-
-    const resInput = document.createElement('input');
-    resInput.type = 'text';
-    resInput.className = 'op-res-input';
-    resInput.placeholder = 'итог';
-    resInput.onmousedown = (e) => e.stopPropagation();
-    resInput.onkeydown = (e) => e.stopPropagation();
-
-    const port = document.createElement("div");
-    port.classList.add("port");
-    makePortConnectable(block, port);
-    block.innerHTML = '';
-    block.classList.add('op-input-mode');
-    block.appendChild(aInput);
-    block.appendChild(select);
-    block.appendChild(bInput);
-    block.appendChild(arrow);
-    block.appendChild(resInput);
-    block.appendChild(port);
-    block.dataset.blockType = 'op';
-}
-
 function createDeclareBlock(block) {
     const typeSelect = document.createElement('select');
     typeSelect.className = 'declare-type-select';
-    ['int', 'float', 'double'].forEach(t => {
+    ['int', 'double'].forEach(t => {
         const opt = document.createElement('option');
         opt.value = t;
         opt.textContent = t;
@@ -290,7 +191,7 @@ function createAssignBlock(block) {
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
     nameInput.className = 'assign-name-input';
-    nameInput.placeholder = 'имя';
+    nameInput.placeholder = 'name';
     nameInput.onmousedown = (e) => e.stopPropagation();
     nameInput.onkeydown = (e) => e.stopPropagation();
 
@@ -301,7 +202,7 @@ function createAssignBlock(block) {
     const exprInput = document.createElement('input');
     exprInput.type = 'text';
     exprInput.className = 'assign-expr-input';
-    exprInput.placeholder = 'выражение';
+    exprInput.placeholder = 'expression';
     exprInput.onmousedown = (e) => e.stopPropagation();
     exprInput.onkeydown = (e) => e.stopPropagation();
 
@@ -346,14 +247,14 @@ function createIfBlock(block) {
     block.dataset.blockType = 'if';
 }
 
-function initSpawner(spawnerId, colorClass, blockOptions, isOutputBlock = false) {
+function initSpawner(spawnerId, colorClass, isOutputBlock = false) {
     const spawner = document.getElementById(spawnerId);
     spawner.onmousedown = (e) => {
         e.preventDefault(); 
 
         const newBlock = document.createElement('div');
         newBlock.classList.add('block', colorClass);
-        createDropdown(newBlock, blockOptions, isOutputBlock);
+        createDropdown(newBlock, isOutputBlock);
         newBlock.style.position = 'absolute';
         newBlock.style.left = (e.clientX - 60) + 'px';
         newBlock.style.top = (e.clientY - 30) + 'px';
@@ -376,26 +277,6 @@ function initVarSpawner(spawnerId) {
         createVarBlock(newBlock);
         newBlock.style.position = 'absolute';
         newBlock.style.left = (e.clientX - 60) + 'px';
-        newBlock.style.top = (e.clientY - 30) + 'px';
-        document.body.appendChild(newBlock);
-        newBlock.onmousedown = (ev) => {
-            if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
-            ev.stopPropagation();
-            startDrag(ev, newBlock);
-        };
-        startDrag(e, newBlock);
-    };
-}
-
-function initOpSpawner(spawnerId) {
-    const spawner = document.getElementById(spawnerId);
-    spawner.onmousedown = (e) => {
-        e.preventDefault();
-        const newBlock = document.createElement('div');
-        newBlock.classList.add('block', 'operation');
-        createOpBlock(newBlock);
-        newBlock.style.position = 'absolute';
-        newBlock.style.left = (e.clientX - 75) + 'px';
         newBlock.style.top = (e.clientY - 30) + 'px';
         document.body.appendChild(newBlock);
         newBlock.onmousedown = (ev) => {
@@ -693,7 +574,6 @@ function resolveValue(raw) {
     const trimmed = String(raw).trim();
     if (trimmed in variables) {
         const val = variables[trimmed];
-        if (Array.isArray(val)) return val;
         return val;
     }
     if (trimmed !== '' && !isNaN(trimmed)) return Number(trimmed);
@@ -768,16 +648,17 @@ function parseTerm(tokens, pos) {
     let [left, p] = parseFactor(tokens, pos);
     while (p < tokens.length && (tokens[p].value === '*' || tokens[p].value === '/' || tokens[p].value === '%')) {
         const op = tokens[p].value;
-        let right; [right, p] = parseFactor(tokens, p + 1);
-        if (op === '*') left = left * right;
-        else if (op === '/') { if (right === 0) throw new Error('Деление на 0'); left = left / right; }
-        else left = left % right;
+        let right; 
+        [right, p] = parseFactor(tokens, p + 1);
+        if (op === '*') left *= right;
+        else if (op === '/') { if (right === 0) throw new Error('Деление на 0'); left /= right; }
+        else { if (right === 0) throw new Error('Остаток от деления на 0'); left %= right; }
     }
     return [left, p];
 }
 
 function parseFactor(tokens, pos) {
-    if (pos >= tokens.length) throw new Error('Неожиданный конец выражения');
+    if (pos >= tokens.length) throw new Error('Неожиданно!');
     const tok = tokens[pos];
     if (tok.type === 'array_access') {
         const arrayName = tok.name;
@@ -802,7 +683,7 @@ function parseFactor(tokens, pos) {
     }
     if (tok.type === 'paren' && tok.value === '(') {
         const [val, p] = parseExpr(tokens, pos + 1);
-        if (p >= tokens.length || tokens[p].value !== ')') throw new Error('Ожидалась )');
+        if (p >= tokens.length || tokens[p].value !== ')') throw new Error('Ожидалось закрытие скобки');
         return [val, p + 1];
     }
     if (tok.type === 'num') return [tok.value, pos + 1];
@@ -818,19 +699,17 @@ function evalExpr(exprStr) {
 }
 
 function evalCondition(leftStr, cmp, rightStr) {
-    const a = evalExpr(leftStr);
+    const a = evalExpr(leftStr)
     const b = evalExpr(rightStr);
     if (cmp === '>')  return a > b;
     if (cmp === '<')  return a < b;
-    if (cmp === '=')  return a === b;
+    if (cmp === '==')  return a === b;
     if (cmp === '!=') return a !== b;
     if (cmp === '>=') return a >= b;
     if (cmp === '<=') return a <= b;
     return false;
 }
 
-// Парсер логических выражений: AND, OR, NOT, скобки
-// Грамматика: expr = orExpr; orExpr = andExpr (OR andExpr)*; andExpr = notExpr (AND notExpr)*; notExpr = NOT notExpr | atom; atom = '(' expr ')' | comparison
 function evalLogicalExpr(str) {
     const tokens = tokenizeLogical(str.trim());
     const [result, pos] = parseOr(tokens, 0);
@@ -845,7 +724,6 @@ function tokenizeLogical(str) {
         if (str[i] === ' ') { i++; continue; }
         if (str[i] === '(') { tokens.push({ type: 'lparen', value: '(' }); i++; continue; }
         if (str[i] === ')') { tokens.push({ type: 'rparen', value: ')' }); i++; continue; }
-        // keywords AND OR NOT
         const upper = str.slice(i).toUpperCase();
         if (upper.startsWith('AND') && !/[A-Z0-9_]/.test(str[i+3] || '')) {
             tokens.push({ type: 'and', value: 'AND' }); i += 3; continue;
@@ -856,15 +734,14 @@ function tokenizeLogical(str) {
         if (upper.startsWith('NOT') && !/[A-Z0-9_]/.test(str[i+3] || '')) {
             tokens.push({ type: 'not', value: 'NOT' }); i += 3; continue;
         }
-        // collect comparison: read until AND/OR/NOT/(/), handling nested parens inside expressions
         let chunk = '';
         let depth = 0;
         while (i < str.length) {
             const u = str.slice(i).toUpperCase();
             if (str[i] === '(' ) { depth++; chunk += str[i++]; continue; }
             if (str[i] === ')' ) {
-                if (depth === 0) break;
-                depth--; chunk += str[i++]; continue;
+                depth--; chunk += str[i++];
+                continue;
             }
             if (depth === 0) {
                 if ((u.startsWith('AND') && !/[A-Z0-9_]/.test(str[i+3] || '')) ||
@@ -906,10 +783,10 @@ function parseNot(tokens, pos) {
 }
 
 function parseLogicalAtom(tokens, pos) {
-    if (pos >= tokens.length) throw new Error('Неожиданный конец логического выражения');
+    if (pos >= tokens.length) throw new Error('Неожиданно!');
     if (tokens[pos].type === 'lparen') {
         const [val, p] = parseOr(tokens, pos + 1);
-        if (p >= tokens.length || tokens[p].type !== 'rparen') throw new Error('Ожидалась )');
+        if (p >= tokens.length || tokens[p].type !== 'rparen') throw new Error('Ожидалось закрытие скобки');
         return [val, p + 1];
     }
     if (tokens[pos].type === 'cmp') {
@@ -1181,7 +1058,7 @@ function createArrayBlock(block) {
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
     nameInput.className = 'array-name-input';
-    nameInput.placeholder = 'имя';
+    nameInput.placeholder = 'name';
     nameInput.onmousedown = (e) => e.stopPropagation();
     nameInput.onkeydown = (e) => e.stopPropagation();
 
@@ -1192,7 +1069,7 @@ function createArrayBlock(block) {
     const sizeInput = document.createElement('input');
     sizeInput.type = 'text';
     sizeInput.className = 'array-size-input';
-    sizeInput.placeholder = 'размер';
+    sizeInput.placeholder = 'size';
     sizeInput.onmousedown = (e) => e.stopPropagation();
     sizeInput.onkeydown = (e) => e.stopPropagation();
 
@@ -1203,7 +1080,7 @@ function createArrayBlock(block) {
     const elementsInput = document.createElement('input');
     elementsInput.type = 'text';
     elementsInput.className = 'array-elements-input';
-    elementsInput.placeholder = 'элементы через запятую';
+    elementsInput.placeholder = 'elements';
     elementsInput.onmousedown = (e) => e.stopPropagation();
     elementsInput.onkeydown = (e) => e.stopPropagation();
 
@@ -1256,10 +1133,10 @@ function createWhileBlock(block) {
 
     const portTrue = document.createElement("div");
     portTrue.classList.add("port", "port-true");
-    portTrue.title = 'true (выполнить тело цикла)';
+    portTrue.title = 'true';
     const portFalse = document.createElement("div");
     portFalse.classList.add("port", "port-false");
-    portFalse.title = 'false (выход из цикла)';
+    portFalse.title = 'false';
     makePortConnectable(block, portTrue);
     makePortConnectable(block, portFalse);
     block.innerHTML = '';
@@ -1417,7 +1294,7 @@ function initEndWhileSpawner(spawnerId) {
 
 function evalConditionStr(condStr) {
     condStr = condStr.trim();
-    for (const cmp of ['>=', '<=', '!=', '>', '<', '=']) {
+    for (const cmp of ['>=', '<=', '!=', '>', '<', '==']) {
         const idx = condStr.indexOf(cmp);
         if (idx !== -1) {
             const left = condStr.slice(0, idx).trim();
@@ -1481,11 +1358,11 @@ function createForBlock(block) {
     stepInput.onkeydown = (e) => e.stopPropagation();
     const portTrue = document.createElement('div');
     portTrue.classList.add('port', 'port-true');
-    portTrue.title = 'true (тело цикла)';
+    portTrue.title = 'true';
     makePortConnectable(block, portTrue);
     const portFalse = document.createElement('div');
     portFalse.classList.add('port', 'port-false');
-    portFalse.title = 'false (выход)';
+    portFalse.title = 'false';
     makePortConnectable(block, portFalse);
     block.innerHTML = '';
     block.classList.add('for-input-mode');
