@@ -134,7 +134,7 @@ function createVarBlock(block){
 function createDeclareBlock(block) {
     const typeSelect = document.createElement('select');
     typeSelect.className = 'declare-type-select';
-    ['int', 'double'].forEach(t => {
+    ['int', 'double', 'string'].forEach(t => {
         const opt = document.createElement('option');
         opt.value = t;
         opt.textContent = t;
@@ -504,6 +504,17 @@ function tokenize(expr) {
     while (i < expr.length) {
         const ch = expr[i];
         if (ch === ' ') { i++; continue; }
+        if (ch === '"' || ch === "'") {
+            const quote = ch;
+            let str = '';
+            i++;
+            while (i < expr.length && expr[i] !== quote) {
+                str += expr[i++];
+            }
+            i++;
+            tokens.push({ type: 'str', value: str });
+            continue;
+        }
         if (ch >= '0' && ch <= '9') {
             let num = '';
             while (i < expr.length && (expr[i] >= '0' && expr[i] <= '9')) num += expr[i++];
@@ -517,29 +528,67 @@ function tokenize(expr) {
         if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch === '_') {
             let name = '';
             while (i < expr.length && (/[a-zA-Z0-9_]/.test(expr[i]))) name += expr[i++];
-               if (i < expr.length && expr[i] === '[') {
-                i++; 
+            if (expr[i] === '(') {
+                    i++;
+                    let argExpr = '';
+                    let depth = 1;
+                    while (i < expr.length && depth > 0) {
+                        if (expr[i] === '(') depth++;
+                        else if (expr[i] === ')') depth--;
+                        if (depth > 0) argExpr += expr[i];
+                        i++;
+                    }
+                    if (name === 'split') {
+                        let commaIdx = -1;
+                        let inQuote = null;
+                        for (let j = 0; j < argExpr.length; j++) {
+                            const c = argExpr[j];
+                            if ((c === '"' || c === "'") && inQuote === null) { inQuote = c; continue; }
+                            if (c === inQuote) { inQuote = null; continue; }
+                            if (inQuote) continue;
+                            if (c === ',') { commaIdx = j; break; }
+                        }
+                        if (commaIdx === -1) throw new Error('split требует два аргумента: split(строка, разделитель)');
+                        const strPart = argExpr.slice(0, commaIdx).trim();
+                        const sepPart = argExpr.slice(commaIdx + 1).trim();
+                        const strTokens = tokenize(strPart);
+                        const [strVal] = parseExpr(strTokens, 0);
+                        const sepTokens = tokenize(sepPart);
+                        const [sepVal] = parseExpr(sepTokens, 0);
+                        tokens.push({ type: 'str', value: String(strVal).split(String(sepVal)) });
+                        continue;
+                    }
+                    const argTokens = tokenize(argExpr.trim());
+                    const [argVal] = parseExpr(argTokens, 0);
+                    if (name === 'int') { tokens.push({ type: 'num', value: Math.trunc(Number(argVal)) }); continue; }
+                    if (name === 'double') { tokens.push({ type: 'num', value: Number(argVal) }); continue; }
+                    if (name === 'string') { tokens.push({ type: 'str', value: String(argVal) }); continue; }
+                    if (name === 'len') {
+                        const v = argVal;
+                        if (Array.isArray(v)) { tokens.push({ type: 'num', value: v.length }); continue; }
+                        tokens.push({ type: 'num', value: String(v).length }); continue;
+                    }
+            }
+            if (name in variables && typeof variables[name] === 'string' && expr[i] === '[') {
+                i++;
                 let indexExpr = '';
                 let bracketCount = 1;
                 while (i < expr.length && bracketCount > 0) {
-                    const c = expr[i];
-                    if (c === '[') bracketCount++;
-                    else if (c === ']') bracketCount--;
-                    
-                    if (bracketCount > 0) {
-                        indexExpr += c;
-                    }
+                    if (expr[i] === '[') bracketCount++;
+                    else if (expr[i] === ']') bracketCount--;
+                    if (bracketCount > 0) indexExpr += expr[i];
                     i++;
                 }
-                tokens.push({ 
-                    type: 'array_access', 
-                    name: name,
-                    indexExpr: indexExpr.trim()
-                });
+                const idxTokens = tokenize(indexExpr.trim());
+                const [idx] = parseExpr(idxTokens, 0);
+                tokens.push({ type: 'str', value: String(variables[name])[idx] ?? '' });
                 continue;
             }
             if (!(name in variables)) throw new Error(`Переменная "${name}" не объявлена`);
-            tokens.push({ type: 'num', value: Number(variables[name]) });
+            const v = variables[name];
+            tokens.push(Array.isArray(v) || typeof v === 'string'
+                ? { type: 'str', value: v }
+                : { type: 'num', value: Number(v) });
             continue;
         }
         if ('()+-*/%'.includes(ch)) {
@@ -556,8 +605,15 @@ function parseExpr(tokens, pos) {
     let [left, p] = parseTerm(tokens, pos);
     while (p < tokens.length && (tokens[p].value === '+' || tokens[p].value === '-')) {
         const op = tokens[p].value;
-        let right; [right, p] = parseTerm(tokens, p + 1);
-        left = op === '+' ? left + right : left - right;
+        let right;
+        [right, p] = parseTerm(tokens, p + 1);
+        if (op === '+') {
+            left = (typeof left === 'string' || typeof right === 'string')
+                ? String(left) + String(right)
+                : left + right;
+        } else {
+            left = left - right;
+        }
     }
     return [left, p];
 }
@@ -605,6 +661,7 @@ function parseFactor(tokens, pos) {
         return [val, p + 1];
     }
     if (tok.type === 'num') return [tok.value, pos + 1];
+    if (tok.type === 'str') return [tok.value, pos + 1];
     throw new Error(`Неожиданный токен: "${tok.value}"`);
 }
 
@@ -617,7 +674,7 @@ function evalExpr(exprStr) {
 }
 
 function evalCondition(leftStr, cmp, rightStr) {
-    const a = evalExpr(leftStr)
+    const a = evalExpr(leftStr);
     const b = evalExpr(rightStr);
     if (cmp === '>')  return a > b;
     if (cmp === '<')  return a < b;
@@ -723,16 +780,42 @@ function getNextBlock(fromBlock, portClass) {
     return null;
 }
 
+function splitOutsideQuotes(str) {
+    const parts = [];
+    let current = '';
+    let inQuote = null;
+    for (let i = 0; i < str.length; i++) {
+        const c = str[i];
+        if ((c === '"' || c === "'") && inQuote === null) { inQuote = c; current += c; continue; }
+        if (c === inQuote) { inQuote = null; current += c; continue; }
+        if (inQuote) { current += c; continue; }
+        if (c === ',') { parts.push(current.trim()); current = ''; continue; }
+        current += c;
+    }
+    if (current.trim()) parts.push(current.trim());
+    return parts;
+}
+
 function handleDeclare(block) {
     const declType = block.querySelector('.declare-type-select')?.value ?? 'int';
-    const raw      = block.querySelector('.declare-names-input')?.value ?? '';
-    const parts     = raw.split('=');
-    const names     = parts[0].split(',').map(s => s.trim()).filter(Boolean);
-    const valueStrs = parts[1] ? parts[1].split(',').map(s => s.trim()) : [];
+    const raw = block.querySelector('.declare-names-input')?.value ?? '';
+    const eqIdx = raw.indexOf('=');
+    const namesPart = eqIdx !== -1 ? raw.slice(0, eqIdx) : raw;
+    const valuesPart = eqIdx !== -1 ? raw.slice(eqIdx + 1) : '';
+
+    const names = namesPart.split(',').map(s => s.trim()).filter(Boolean);
 
     if (names.length === 0) {
         markBlockError(block);
         throw new Error('Не указаны имена переменных');
+    }
+    let valueStrs = [];
+    if (valuesPart.trim()) {
+        if (declType === 'string') {
+            valueStrs = splitOutsideQuotes(valuesPart);
+        } else {
+            valueStrs = valuesPart.split(',').map(s => s.trim());
+        }
     }
 
     names.forEach((name, i) => {
@@ -740,13 +823,23 @@ function handleDeclare(block) {
             markBlockError(block);
             throw new Error(`Недопустимое имя: "${name}"`);
         }
-
-        let val = 0;
+        let val = declType === 'string' ? '' : 0;
         if (valueStrs[i] !== undefined && valueStrs[i] !== '') {
-            try { val = evalExpr(valueStrs[i]); } catch { val = 0; }
+            const vs = valueStrs[i].trim();
+            if (declType === 'string') {
+                if ((vs.startsWith('"') && vs.endsWith('"')) ||
+                    (vs.startsWith("'") && vs.endsWith("'"))) {
+                    val = vs.slice(1, -1);
+                } else {
+                    try { val = String(evalExpr(vs)); }
+                    catch { val = vs; }
+                }
+            } else {
+                try { val = evalExpr(vs); } catch { val = 0; }
+            }
         }
-
-        if (declType === 'int') val = Math.trunc(val);
+        if (declType === 'int') val = Math.trunc(Number(val));
+        else if (declType === 'double') val = Number(val);
         variables[name] = val;
         varTypes[name]  = declType;
     });
@@ -792,7 +885,9 @@ function handleAssignVar(block, name, exprStr) {
     }
 
     let result = evalExpr(exprStr);
-    if (varTypes[name] === 'int') result = Math.trunc(result);
+    if (varTypes[name] === 'int') result = Math.trunc(Number(result));
+    else if (varTypes[name] === 'double') result = Number(result);
+    else if (varTypes[name] === 'string') result = String(result);
 
     variables[name] = result;
     addConsoleMessage(`${name} = ${result}`, 'print');

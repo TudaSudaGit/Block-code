@@ -715,9 +715,9 @@ svg {
     font-weight: bold;
     text-align: center;
     outline: none;
-    width: 48px;
-    min-width: 48px;
-    max-width: 48px;
+    width: 58px;
+    min-width: 58px;
+    max-width: 58px;
     cursor: pointer;
     padding: 0;
     flex-shrink: 0;
