@@ -232,7 +232,6 @@ body {
     animation: none;
 }
 
-
 .block.output.text-input-mode {
     padding: 0;
     overflow: hidden;
@@ -361,7 +360,6 @@ svg {
     transition: all 0.2s;
 }
 
-
 .console-clear:hover {
     background: #ff4444;
     color: rgb(68, 9, 9);
@@ -409,7 +407,6 @@ svg {
     color: #4FC3F7;
     font-style: italic;
 }
-
 
 .console-message.complete {
     border-left-color: #ffffff;
@@ -910,3 +907,70 @@ svg {
     filter: brightness(0.7);
     opacity: 0.8;
 }
+.io-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 120px;
+}
+
+.io-btn {
+    width: 120px;
+    height: 52px;
+    border-radius: 10px;
+    border: 3px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-weight: bold;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+    flex-direction: column;
+    padding: 0;
+    line-height: 1.2;
+}
+
+.io-btn .io-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.io-btn .io-label {
+    font-size: 11px;
+}
+
+.save-btn {
+    background: #1565C0;
+    border-color: #42A5F5;
+    color: #E3F2FD;
+}
+
+.save-btn:hover {
+    background: #1976D2;
+    border-color: #90CAF9;
+    filter: brightness(1.2);
+    transform: scale(1.04);
+    box-shadow: 0 0 16px rgba(66,165,245,0.5);
+}
+
+.save-btn:active { transform: scale(0.96); }
+
+.load-btn {
+    background: #4A148C;
+    border-color: #CE93D8;
+    color: #F3E5F5;
+}
+
+.load-btn:hover {
+    background: #6A1B9A;
+    border-color: #E1BEE7;
+    filter: brightness(1.2);
+    transform: scale(1.04);
+    box-shadow: 0 0 16px rgba(206,147,216,0.5);
+}
+
+.load-btn:active { transform: scale(0.96); }
