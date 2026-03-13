@@ -36,10 +36,10 @@ function serializeState() {
     });
 
     const connsData = connections.map(conn => ({
-            from:      conn.from.id === 'startBlock' ? '__start__' : blockToId.get(conn.from),
-            to:   blockToId.get(conn.to),
-            portClass: conn.portClass
-        }));
+        from:      conn.from.id === 'startBlock' ? '__start__' : blockToId.get(conn.from),
+        to:        blockToId.get(conn.to),
+        portClass: conn.portClass
+    }));
 
     return {
         startBlock: { left: startEl.style.left || '170px', top: startEl.style.top || '20px' },
@@ -50,13 +50,13 @@ function serializeState() {
 
 function saveAlgorithm() {
     const name = prompt('Имя файла:', 'algorithm') || 'algorithm';
-    const blob = new Blob([JSON.stringify(serializeState())], {type: 'application/json'});
-     const link = document.createElement('a');
-     const fileUrl = URL.createObjectURL(blob);
-     link.href = fileUrl;
-     link.download = name + ".codeblock";
-     link.click();
-     URL.revokeObjectURL(fileUrl);
+    const blob = new Blob([JSON.stringify(serializeState())], { type: 'application/json' });
+    const link = document.createElement('a');
+    const fileUrl = URL.createObjectURL(blob);
+    link.href = fileUrl;
+    link.download = name + ".codeblock";
+    link.click();
+    URL.revokeObjectURL(fileUrl);
 }
 
 function loadAlgorithm() {
@@ -134,3 +134,6 @@ function restoreState(state) {
 
     updateConnections();
 }
+
+document.getElementById('saveBtn').addEventListener('click', saveAlgorithm);
+document.getElementById('loadBtn').addEventListener('click', loadAlgorithm);

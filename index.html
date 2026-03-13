@@ -18,12 +18,11 @@
     <div class="block forblock" id="spawnerFor">for</div>
     <div class="block array" id="spawnerArray">array</div>
 </div>
-  
+
 <div class="panel right-panel">
     <button class="run-block" id="runButton">RUN</button>
     <button class="debug-block" id="debugButton">DEBUG</button>
     <button class="step-block" id="stepButton" disabled>STEP →</button>
-    <div class="run-block" id="runButton">RUN</div>
     <div class="io-buttons">
         <button class="io-btn save-btn" id="saveBtn" title="Сохранить алгоритм">
             <span class="io-icon">💾</span>
@@ -47,11 +46,15 @@
     <div class="console-content" id="consoleContent"></div>
 </div>
 
-<script src="main.js"></script>
+<script src="globals.js"></script>
+<script src="connections.js"></script>
+<script src="console.js"></script>
+<script src="drag.js"></script>
+<script src="eval.js"></script>
+<script src="blocks.js"></script>
+<script src="executor.js"></script>
+<script src="debugger.js"></script>
 <script src="save-load.js"></script>
-<script>
-    document.getElementById('saveBtn').addEventListener('click', saveAlgorithm);
-    document.getElementById('loadBtn').addEventListener('click', loadAlgorithm);
-</script>
+
 </body>
 </html>
