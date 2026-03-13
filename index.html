@@ -21,6 +21,16 @@
   
 <div class="panel right-panel">
     <div class="run-block" id="runButton">RUN</div>
+    <div class="io-buttons">
+        <button class="io-btn save-btn" id="saveBtn" title="Сохранить алгоритм">
+            <span class="io-icon">💾</span>
+            <span class="io-label">Сохранить</span>
+        </button>
+        <button class="io-btn load-btn" id="loadBtn" title="Загрузить алгоритм">
+            <span class="io-icon">📂</span>
+            <span class="io-label">Загрузить</span>
+        </button>
+    </div>
     <div class="trash" id="trash">🗑️</div>
 </div>
 
@@ -35,5 +45,10 @@
 </div>
 
 <script src="main.js"></script>
+<script src="save-load.js"></script>
+<script>
+    document.getElementById('saveBtn').addEventListener('click', saveAlgorithm);
+    document.getElementById('loadBtn').addEventListener('click', loadAlgorithm);
+</script>
 </body>
 </html>
