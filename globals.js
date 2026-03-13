@@ -7,15 +7,14 @@ let startBlock = null;
 let executionInProgress = false;
 let variables = {};
 let varTypes = {};
- 
+
 let debugMode = false;
 let debugCurrentBlock = null;
 let debugTimeoutId = null;
 let debugStepResolve = null;
 let debugHighlightInterval = null;
 let debugIndicator = null;
-let debugStepPromise = null;
- 
+
 let tryCatchStack = [];
 let currentError = null;
 let errorCaught = false;

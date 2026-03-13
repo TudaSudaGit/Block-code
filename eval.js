@@ -78,7 +78,7 @@ function tokenize(expr) {
                     tokens.push({ type: 'num', value: String(v).length }); continue;
                 }
             }
-            if (name in variables && typeof variables[name] === 'string' && expr[i] === '[') {
+            if (name in variables && expr[i] === '[') {
                 i++;
                 let indexExpr = '';
                 let bracketCount = 1;
@@ -90,7 +90,15 @@ function tokenize(expr) {
                 }
                 const idxTokens = tokenize(indexExpr.trim());
                 const [idx] = parseExpr(idxTokens, 0);
-                tokens.push({ type: 'str', value: String(variables[name])[idx] ?? '' });
+                const container = variables[name];
+                if (Array.isArray(container)) {
+                    if (!Number.isInteger(idx) || idx < 0) throw new Error(`Индекс массива должен быть целым неотрицательным: ${idx}`);
+                    if (idx >= container.length) throw new Error(`Индекс ${idx} вне границ массива "${name}" (длина: ${container.length})`);
+                    const el = container[idx];
+                    tokens.push(typeof el === 'number' ? { type: 'num', value: el } : { type: 'str', value: el });
+                } else {
+                    tokens.push({ type: 'str', value: String(container)[idx] ?? '' });
+                }
                 continue;
             }
             if (!(name in variables)) throw new Error(`Переменная "${name}" не объявлена`);

@@ -128,6 +128,8 @@ function handleFor(block) {
     let condition = true;
     if (condStr) condition = evalConditionStr(condStr);
 
+    if (!condition) block.dataset.forInited = '0';
+
     addConsoleMessage(`for (${initStr}; ${condStr}; ${stepStr}) → ${condition ? 'true' : 'false'}`, 'print');
 
     return {
