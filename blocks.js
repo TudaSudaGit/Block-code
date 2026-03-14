@@ -160,7 +160,7 @@ function createArrayBlock(block) {
     eq1.textContent = '[';
 
     const sizeInput = document.createElement('input');
-    sizeInput.type = 'text';
+    sizeInput.type = 'number';
     sizeInput.className = 'array-size-input';
     sizeInput.placeholder = 'size';
     sizeInput.onmousedown = (e) => e.stopPropagation();
